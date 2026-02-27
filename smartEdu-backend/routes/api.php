@@ -3,6 +3,10 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+// Import Auth Controllers
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+
 // Import semua controller yang dibutuhkan
 use App\Http\Controllers\GuruController;
 use App\Http\Controllers\SiswaController;
@@ -25,13 +29,31 @@ use App\Http\Controllers\PengumumanController;
 |
 */
 
-// Endpoint untuk mendapatkan data user yang sedang login
-Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
-    return $request->user();
-});
+// ============================================================================
+// PUBLIC ROUTES (Tidak perlu login)
+// ============================================================================
 
-// Grup route yang membutuhkan autentikasi (harus login terlebih dahulu)
+// Route untuk Login & Register
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+    ->name('login');
+
+Route::post('/register', [RegisteredUserController::class, 'store'])
+    ->name('register');
+
+// ============================================================================
+// PROTECTED ROUTES (Harus login terlebih dahulu)
+// ============================================================================
+
 Route::middleware(['auth:sanctum'])->group(function () {
+
+    // Endpoint untuk mendapatkan data user yang sedang login
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+
+    // Route Logout
+    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
+        ->name('logout');
 
     // Route Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
