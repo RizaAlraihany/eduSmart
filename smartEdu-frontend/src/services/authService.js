@@ -1,8 +1,14 @@
 import api from "./api";
 
 const authService = {
+  async getCsrfCookie() {
+    await api.get("/sanctum/csrf-cookie");
+  },
+
   async login(credentials) {
-    const response = await api.post("/login", credentials);
+    await this.getCsrfCookie();
+
+    const response = await api.post("/api/login", credentials);
     if (response.data.token) {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
@@ -11,7 +17,9 @@ const authService = {
   },
 
   async register(userData) {
-    const response = await api.post("/register", userData);
+    await this.getCsrfCookie();
+
+    const response = await api.post("/api/register", userData);
     if (response.data.token) {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
@@ -20,13 +28,13 @@ const authService = {
   },
 
   async logout() {
-    await api.post("/logout");
+    await api.post("/api/logout");
     localStorage.removeItem("token");
     localStorage.removeItem("user");
   },
 
   async getCurrentUser() {
-    const response = await api.get("/user");
+    const response = await api.get("/api/user");
     return response.data;
   },
 
