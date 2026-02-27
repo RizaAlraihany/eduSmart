@@ -27,13 +27,13 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     const data = await authService.login(credentials);
-    setUser(data.user);
+    setUser(data.data.user);
     return data;
   };
 
   const register = async (userData) => {
     const data = await authService.register(userData);
-    setUser(data.user);
+    setUser(data.data.user);
     return data;
   };
 

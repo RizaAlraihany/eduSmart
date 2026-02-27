@@ -8,16 +8,24 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
 });
 
-// Request interceptor
+// Request interceptor untuk menambahkan CSRF token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    // Ambil XSRF-TOKEN dari cookie
+    const token = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("XSRF-TOKEN="))
+      ?.split("=")[1];
+
+    // Jika token ditemukan, tambahkan ke header
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers["X-XSRF-TOKEN"] = decodeURIComponent(token);
     }
+
     return config;
   },
   (error) => {
@@ -30,7 +38,6 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/login";
     }
