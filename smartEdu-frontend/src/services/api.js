@@ -1,9 +1,11 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// BASE_URL tanpa /api — dipakai untuk CSRF dan kebutuhan non-API
+export const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+// Instance utama untuk semua request ke /api/*
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: `${BASE_URL}/api`,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -12,28 +14,24 @@ const api = axios.create({
   },
 });
 
-// Request interceptor untuk menambahkan CSRF token
+// Request interceptor — ambil XSRF-TOKEN dari cookie
 api.interceptors.request.use(
   (config) => {
-    // Ambil XSRF-TOKEN dari cookie
     const token = document.cookie
       .split("; ")
       .find((row) => row.startsWith("XSRF-TOKEN="))
       ?.split("=")[1];
 
-    // Jika token ditemukan, tambahkan ke header
     if (token) {
       config.headers["X-XSRF-TOKEN"] = decodeURIComponent(token);
     }
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  },
+  (error) => Promise.reject(error),
 );
 
-// Response interceptor
+// Response interceptor — handle 401
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -44,5 +42,11 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+
+export const getCsrfCookie = () =>
+  axios.get(`${BASE_URL}/sanctum/csrf-cookie`, {
+    withCredentials: true,
+  });
 
 export default api;
