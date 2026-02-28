@@ -1,6 +1,12 @@
 import React from "react";
 
-const Input = ({ label, error, icon: Icon, className = "", ...props }) => {
+const Input = ({
+  label,
+  error,
+  icon: Icon,
+  className = "",
+  ...props
+}) => {
   return (
     <div className={className}>
       {label && <label className="label">{label}</label>}

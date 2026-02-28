@@ -37,7 +37,9 @@ const Alert = ({ type = "info", message, onClose }) => {
   const Icon = config.icon;
 
   return (
-    <div className={`${config.bg} ${config.border} border rounded-lg p-4 mb-4`}>
+    <div
+      className={`${config.bg} ${config.border} border rounded-lg p-4 mb-4`}
+    >
       <div className="flex">
         <div className="flex-shrink-0">
           <Icon className={`h-5 w-5 ${config.iconColor}`} />

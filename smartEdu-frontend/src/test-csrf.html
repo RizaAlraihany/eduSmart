@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test CSRF Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 3px solid #333;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success { border-color: #4CAF50; background: #e8f5e9; }
+        .error { border-color: #f44336; background: #ffebee; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1976D2; }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test CSRF Cookie-Based Login</h1>
+    
+    <div>
+        <label>Email:</label>
+        <input type="email" id="email" value="admin@smartedu.com">
+        
+        <label>Password:</label>
+        <input type="password" id="password" value="password123">
+    </div>
+
+    <div style="margin: 20px 0;">
+        <button onclick="testGetCsrf()">Step 1: Get CSRF Cookie</button>
+        <button onclick="testLogin()">Step 2: Login</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <div id="logs"></div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        
+        function log(message, type = 'log') {
+            const logsDiv = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+            logsDiv.insertBefore(logEntry, logsDiv.firstChild);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testGetCsrf() {
+            try {
+                log('🔄 Requesting CSRF cookie...', 'log');
+                
+                const response = await fetch(`${API_URL}/sanctum/csrf-cookie`, {
+                    method: 'GET',
+                    credentials: 'include', // PENTING: untuk mengirim & menerima cookies
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                log(`📥 Response Status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                // Check cookies
+                const cookies = document.cookie;
+                log(`🍪 Cookies: ${cookies || 'NO COOKIES!'}`, cookies ? 'success' : 'error');
+                
+                if (cookies.includes('XSRF-TOKEN')) {
+                    log('✅ XSRF-TOKEN cookie found!', 'success');
+                } else {
+                    log('❌ XSRF-TOKEN cookie NOT found!', 'error');
+                }
+
+                if (cookies.includes('laravel_session')) {
+                    log('✅ laravel_session cookie found!', 'success');
+                } else {
+                    log('❌ laravel_session cookie NOT found!', 'error');
+                }
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        function decodeToken(token) {
+            try {
+                return decodeURIComponent(token);
+            } catch (e) {
+                return token;
+            }
+        }
+
+        async function testLogin() {
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                log('🔄 Attempting login...', 'log');
+                
+                // Get XSRF token from cookie
+                const xsrfToken = getCookie('XSRF-TOKEN');
+                
+                if (!xsrfToken) {
+                    log('❌ No XSRF-TOKEN cookie! Run Step 1 first.', 'error');
+                    return;
+                }
+
+                const decodedToken = decodeToken(xsrfToken);
+                log(`🔑 XSRF-TOKEN: ${xsrfToken.substring(0, 30)}...`, 'log');
+                log(`🔓 Decoded Token: ${decodedToken.substring(0, 30)}...`, 'log');
+
+                const response = await fetch(`${API_URL}/api/login`, {
+                    method: 'POST',
+                    credentials: 'include', // PENTING: untuk mengirim cookies
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-XSRF-TOKEN': decodedToken, // Token yang sudah di-decode
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                log(`📥 Response Status: ${response.status}`, response.ok ? 'success' : 'error');
+
+                const data = await response.json();
+                log(`📦 Response Data: ${JSON.stringify(data, null, 2)}`, response.ok ? 'success' : 'error');
+
+                if (response.ok) {
+                    log('✅ LOGIN BERHASIL!', 'success');
+                } else {
+                    log('❌ LOGIN GAGAL!', 'error');
+                }
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-log on page load
+        log('📄 Page loaded. Ready to test!', 'log');
+        log('ℹ️  Instructions:', 'log');
+        log('1. Click "Step 1: Get CSRF Cookie"', 'log');
+        log('2. Wait for success message', 'log');
+        log('3. Click "Step 2: Login"', 'log');
+        log('4. Check the logs for results', 'log');
+    </script>
+</body>
+</html>
