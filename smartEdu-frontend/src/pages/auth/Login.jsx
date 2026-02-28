@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate, Link } from "react-router-dom";
 import {
   GraduationCap,
   Mail,
@@ -9,194 +8,171 @@ import {
   EyeOff,
   AlertCircle,
 } from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
-import Alert from "../../components/common/Alert";
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    remember: false,
-  });
-
+  const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) setFieldErrors((prev) => ({ ...prev, [name]: "" }));
+    if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
     setLoading(true);
-
     try {
-      await login({
-        email: formData.email,
-        password: formData.password,
-      });
-      navigate("/dashboard");
+      await login(form);
+      navigate("/dashboard", { replace: true });
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Login gagal. Periksa email dan password Anda.",
-      );
+      if (err.response?.status === 422) {
+        const errors = err.response.data?.errors ?? {};
+        setFieldErrors(errors);
+        setError(Object.values(errors).flat()[0] ?? "Validasi gagal.");
+      } else {
+        setError(err.response?.data?.message ?? "Email atau password salah.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        {/* Logo & Title */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center justify-center mb-4">
-            <div className="bg-primary-600 p-3 rounded-xl mr-3">
-              <GraduationCap className="w-8 h-8 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-primary-600">
-              SmartEdu
-            </span>
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Selamat Datang
-          </h1>
-          <p className="text-gray-600">Masuk ke akun Anda untuk melanjutkan</p>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Left panel — branding */}
+      <div className="hidden lg:flex lg:w-5/12 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 flex-col justify-between p-12">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+            <GraduationCap className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-white font-black text-xl">eduSmart</span>
         </div>
+        <div>
+          <h1 className="text-4xl font-black text-white leading-tight mb-4">
+            Selamat Datang
+            <br />
+            di eduSmart
+          </h1>
+          <p className="text-indigo-200 text-sm leading-relaxed">
+            Sistem manajemen sekolah modern untuk mengelola siswa, guru, kelas,
+            dan jadwal dalam satu platform terintegrasi.
+          </p>
+          <div className="grid grid-cols-3 gap-4 mt-10">
+            {[
+              { value: "1.200+", label: "Siswa" },
+              { value: "86", label: "Guru" },
+              { value: "32", label: "Kelas" },
+            ].map((s) => (
+              <div key={s.label} className="bg-white/10 rounded-2xl p-4">
+                <p className="text-2xl font-black text-white">{s.value}</p>
+                <p className="text-indigo-300 text-xs mt-0.5">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="text-indigo-400 text-xs">
+          © 2026 eduSmart. All rights reserved.
+        </p>
+      </div>
 
-        {/* Card */}
-        <div className="card">
+      {/* Right panel — form */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2.5 mb-8 lg:hidden">
+            <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <GraduationCap className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-black text-gray-900 text-xl">eduSmart</span>
+          </div>
+
+          <h2 className="text-2xl font-black text-gray-900 mb-1">
+            Masuk ke Akun
+          </h2>
+          <p className="text-sm text-gray-400 mb-7">
+            Masukkan kredensial Anda untuk melanjutkan
+          </p>
+
           {error && (
-            <Alert type="error" message={error} onClose={() => setError("")} />
+            <div className="flex items-center gap-2.5 bg-red-50 border border-red-100 text-red-600 px-3.5 py-3 rounded-xl mb-5 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email */}
-            <div>
-              <label className="label">Email</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="input pl-10"
-                  placeholder="nama@sekolah.com"
-                  required
-                />
-              </div>
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              type="email"
+              name="email"
+              label="Email"
+              placeholder="admin@edu.id"
+              value={form.email}
+              onChange={handleChange}
+              icon={Mail}
+              error={fieldErrors.email?.[0]}
+              required
+              autoComplete="email"
+            />
 
-            {/* Password */}
-            <div>
-              <label className="label">Password</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="input pl-10 pr-10"
-                  placeholder="••••••••"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Remember & Forgot */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  name="remember"
-                  checked={formData.remember}
-                  onChange={handleChange}
-                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="ml-2 text-sm text-gray-600">Ingat saya</span>
-              </label>
-              <Link
-                to="/forgot-password"
-                className="text-sm text-primary-600 hover:text-primary-700"
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                label="Password"
+                placeholder="Masukkan password"
+                value={form.password}
+                onChange={handleChange}
+                icon={Lock}
+                error={fieldErrors.password?.[0]}
+                required
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3.5 top-[34px] text-gray-400 hover:text-gray-600 transition-colors"
               >
-                Lupa password?
-              </Link>
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
             </div>
 
-            {/* Submit Button */}
             <Button
               type="submit"
               variant="primary"
-              className="w-full"
+              size="lg"
+              fullWidth
               loading={loading}
+              className="mt-2"
             >
-              Masuk
+              {loading ? "Memproses..." : "Masuk"}
             </Button>
           </form>
 
-          {/* Divider */}
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Belum punya akun?
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Register Link */}
-          <div className="mt-6 text-center">
+          <p className="text-center text-sm text-gray-400 mt-6">
+            Belum punya akun?{" "}
             <Link
               to="/register"
-              className="text-primary-600 hover:text-primary-700 font-medium"
+              className="text-indigo-600 font-semibold hover:underline"
             >
-              Daftar Sekarang
+              Daftar sekarang
             </Link>
-          </div>
-        </div>
-
-        {/* Demo Credentials */}
-        <div className="mt-6 card bg-blue-50 border-blue-200">
-          <div className="flex items-start">
-            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
-            <div className="text-sm text-blue-800">
-              <p className="font-semibold mb-1">Demo Credentials:</p>
-              <p>Email: admin@edusmart.com</p>
-              <p>Password: password</p>
-            </div>
-          </div>
+          </p>
         </div>
       </div>
     </div>

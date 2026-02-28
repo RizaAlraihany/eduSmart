@@ -17,7 +17,7 @@ const createService = (endpoint) => ({
   delete: (id) => api.delete(`/${endpoint}/${id}`).then((r) => r.data),
 });
 
-// ─── Services per resource ────────────────────────────────────────────────────
+// Services per resource
 
 export const siswaService = {
   ...createService("siswa"),
@@ -57,20 +57,21 @@ export const absensiService = {
     api.get("/absensi", { params: { tanggal, ...params } }).then((r) => r.data),
 };
 
-export const nilaiService = createService("nilai");
-
-export const pembayaranService = {
-  ...createService("pembayaran"),
-  getByStatus: (status) =>
-    api
-      .get("/pembayaran", { params: { status_pembayaran: status } })
-      .then((r) => r.data),
-};
+// --- TAMBAHAN BARU UNTUK DASHBOARD.JSX ---
 
 export const pengumumanService = {
   ...createService("pengumuman"),
-  getAktif: () =>
-    api
-      .get("/pengumuman", { params: { aktif: true, per_page: 10 } })
-      .then((r) => r.data),
+  /** * Mengambil data pengumuman terbaru
+   * GET /api/pengumuman?limit=5
+   */
+  getTerbaru: (limit = 5) =>
+    api.get("/pengumuman", { params: { limit } }).then((r) => r.data),
+};
+
+export const dashboardService = {
+  /** * Mengambil data statistik dashboard utama
+   * Sesuaikan dengan endpoint statistik Laravel Anda
+   * GET /api/dashboard
+   */
+  getStats: () => api.get("/dashboard").then((r) => r.data),
 };
