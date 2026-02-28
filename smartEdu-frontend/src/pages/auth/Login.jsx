@@ -8,7 +8,7 @@ import {
   EyeOff,
   AlertCircle,
 } from "lucide-react";
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from "../../contexts/AuthContext";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 
@@ -142,7 +142,7 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3.5 top-[34px] text-gray-400 hover:text-gray-600 transition-colors"
+                className="absolute right-3.5 top-[42px] text-gray-400 hover:text-gray-600 transition-colors"
               >
                 {showPassword ? (
                   <EyeOff className="w-4 h-4" />

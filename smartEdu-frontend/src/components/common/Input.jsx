@@ -1,7 +1,7 @@
-import React from "react";
+import React from 'react';
 
 const Input = ({
-  type = "text",
+  type = 'text',
   label,
   placeholder,
   value,
@@ -11,7 +11,7 @@ const Input = ({
   hint,
   required = false,
   disabled = false,
-  className = "",
+  className = '',
   ...props
 }) => {
   return (
@@ -28,18 +28,15 @@ const Input = ({
         </div>
       )}
 
-      <div
-        className={`
+      <div className={`
         flex items-center gap-2.5 h-11 px-3.5
         bg-white border rounded-xl transition-all duration-150
-        ${
-          error
-            ? "border-red-300 ring-1 ring-red-300"
-            : "border-gray-200 hover:border-gray-300 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400"
+        ${error
+          ? 'border-red-300 ring-1 ring-red-300'
+          : 'border-gray-200 hover:border-gray-300 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400'
         }
-        ${disabled ? "bg-gray-50 opacity-60 cursor-not-allowed" : ""}
-      `}
-      >
+        ${disabled ? 'bg-gray-50 opacity-60 cursor-not-allowed' : ''}
+      `}>
         {Icon && <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />}
 
         <input

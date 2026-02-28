@@ -17,7 +17,7 @@ const createService = (endpoint) => ({
   delete: (id) => api.delete(`/${endpoint}/${id}`).then((r) => r.data),
 });
 
-// ─── Services per resource ────────────────────────────────────────────────────
+// Services per resource 
 
 export const siswaService = {
   ...createService("siswa"),

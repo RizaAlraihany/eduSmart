@@ -11,13 +11,13 @@ import {
   Lock,
   Phone,
   MapPin,
-  CreditCard,
   Contact,
   IdCard,
-  UserRound,
   Users,
   ChevronRight,
   ChevronLeft,
+  UserCircle,
+  CalendarDays,
 } from "lucide-react";
 import api from "../../services/api";
 import Button from "../../components/common/Button";
@@ -77,7 +77,7 @@ const StepIndicator = ({ currentStep }) => (
   </div>
 );
 
-// Dropdown dengan style sama seperti Input
+// Dropdown dengan style sama seperti Input + icon
 const Select = ({
   label,
   hint,
@@ -86,6 +86,7 @@ const Select = ({
   onChange,
   name,
   error,
+  icon: Icon,
   children,
 }) => (
   <div className="w-full">
@@ -96,22 +97,51 @@ const Select = ({
       </label>
       {hint && <span className="text-xs text-gray-400">{hint}</span>}
     </div>
-    <div
-      className={`
-      flex items-center h-11 px-3.5 bg-white border rounded-xl transition-all duration-150
-      ${error ? "border-red-300 ring-1 ring-red-300" : "border-gray-200 hover:border-gray-300 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400"}
-    `}
-    >
-      <select
-        name={name}
-        value={value}
-        onChange={onChange}
-        className="flex-1 text-sm text-gray-900 bg-transparent outline-none appearance-none"
+    <div className="relative">
+      <div
+        className={`
+        flex items-center gap-2.5 h-11 px-3.5 bg-white border rounded-xl transition-all duration-150
+        ${error ? "border-red-300 ring-1 ring-red-300" : "border-gray-200 hover:border-gray-300 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400"}
+      `}
       >
-        {children}
-      </select>
+        {Icon && <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
+          className="flex-1 text-sm font-medium text-gray-900 bg-transparent outline-none appearance-none cursor-pointer pr-8"
+          style={{
+            paddingTop: "2px",
+            paddingBottom: "2px",
+          }}
+        >
+          {children}
+        </select>
+        <svg
+          className="w-4 h-4 text-gray-400 flex-shrink-0 pointer-events-none absolute right-3.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </div>
     </div>
     {error && <p className="mt-1 text-xs text-red-500 font-medium">{error}</p>}
+    <style jsx>{`
+      select option {
+        padding: 10px 14px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #111827;
+        background-color: #ffffff;
+      }
+    `}</style>
   </div>
 );
 
@@ -172,6 +202,14 @@ const Register = () => {
       if (!form.tanggal_lahir)
         errs.tanggal_lahir = ["Tanggal lahir wajib diisi."];
     }
+    if (step === 2) {
+      if (!form.telepon) errs.telepon = ["No. telepon wajib diisi."];
+      if (!form.alamat) errs.alamat = ["Alamat wajib diisi."];
+      if (!form.nama_orang_tua)
+        errs.nama_orang_tua = ["Nama orang tua wajib diisi."];
+      if (!form.telepon_orang_tua)
+        errs.telepon_orang_tua = ["No. telepon orang tua wajib diisi."];
+    }
     if (step === 3) {
       if (!form.email) errs.email = ["Email wajib diisi."];
       if (!form.password || form.password.length < 8)
@@ -179,73 +217,40 @@ const Register = () => {
       if (form.password !== form.password_confirmation)
         errs.password_confirmation = ["Konfirmasi password tidak cocok."];
     }
-    return errs;
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      return false;
+    }
+    return true;
   };
 
   const handleNext = () => {
-    const errs = validateStep();
-    if (Object.keys(errs).length > 0) {
-      setFieldErrors(errs);
-      return;
-    }
-    setStep((s) => s + 1);
+    if (!validateStep()) return;
+    setStep((prev) => prev + 1);
   };
 
-  const handleBack = () => {
-    setFieldErrors({});
-    setError("");
-    setStep((s) => s - 1);
-  };
+  const handleBack = () => setStep((prev) => prev - 1);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const errs = validateStep();
-    if (Object.keys(errs).length > 0) {
-      setFieldErrors(errs);
-      return;
-    }
+    if (!validateStep()) return;
 
     setLoading(true);
     setError("");
     try {
-      await api.post("/register", {
-        nik: form.nik,
-        nisn: form.nisn,
-        nama: form.nama,
-        jenis_kelamin: form.jenis_kelamin,
-        tanggal_lahir: form.tanggal_lahir,
-        telepon: form.telepon || undefined,
-        alamat: form.alamat || undefined,
-        nama_orang_tua: form.nama_orang_tua || undefined,
-        telepon_orang_tua: form.telepon_orang_tua || undefined,
-        email: form.email,
-        password: form.password,
-        password_confirmation: form.password_confirmation,
-      });
+      await api.post("/register", form);
       setSuccess(true);
-      setTimeout(() => navigate("/dashboard", { replace: true }), 2000);
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
       if (err.response?.status === 422) {
         const errors = err.response.data?.errors ?? {};
         setFieldErrors(errors);
-        const step1Fields = [
-          "nik",
-          "nisn",
-          "nama",
-          "jenis_kelamin",
-          "tanggal_lahir",
-        ];
-        const step2Fields = [
-          "telepon",
-          "alamat",
-          "nama_orang_tua",
-          "telepon_orang_tua",
-        ];
-        if (step1Fields.some((f) => errors[f])) setStep(1);
-        else if (step2Fields.some((f) => errors[f])) setStep(2);
-        setError(Object.values(errors).flat()[0] ?? "Validasi gagal.");
+        const firstError = Object.values(errors).flat()[0];
+        setError(firstError || "Validasi gagal.");
       } else {
-        setError(err.response?.data?.message ?? "Registrasi gagal. Coba lagi.");
+        setError(
+          err.response?.data?.message || "Gagal mendaftar. Coba lagi nanti.",
+        );
       }
     } finally {
       setLoading(false);
@@ -254,15 +259,17 @@ const Register = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center max-w-sm w-full">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-8 h-8 text-emerald-500" />
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-xl shadow-emerald-500/30 animate-pulse">
+            <CheckCircle className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-xl font-black text-gray-900 mb-1">
-            Registrasi Berhasil!
+          <h2 className="text-2xl font-black text-gray-900">
+            Pendaftaran Berhasil!
           </h2>
-          <p className="text-sm text-gray-400">Mengarahkan ke dashboard...</p>
+          <p className="text-gray-600">
+            Akun Anda telah terdaftar. Silakan login untuk melanjutkan.
+          </p>
         </div>
       </div>
     );
@@ -270,7 +277,7 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Left panel */}
+      {/* Left panel — branding */}
       <div className="hidden lg:flex lg:w-5/12 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 flex-col justify-between p-12">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
@@ -279,28 +286,20 @@ const Register = () => {
           <span className="text-white font-black text-xl">eduSmart</span>
         </div>
         <div>
-          <h1 className="text-3xl font-black text-white leading-tight mb-3">
-            Daftarkan Diri
+          <h1 className="text-4xl font-black text-white leading-tight mb-4">
+            Bergabunglah
             <br />
-            Sebagai Siswa
+            dengan eduSmart
           </h1>
-          <p className="text-indigo-200 text-sm leading-relaxed">
-            Lengkapi data diri Anda untuk membuat akun. Proses hanya membutuhkan
-            beberapa menit.
+          <p className="text-indigo-200 text-sm leading-relaxed mb-8">
+            Daftarkan diri Anda dan nikmati sistem pembelajaran modern yang
+            terintegrasi untuk kemudahan akses data akademik.
           </p>
-          <div className="mt-8 space-y-3">
-            {[
-              "Isi identitas diri",
-              "Tambahkan data orang tua",
-              "Buat akun login",
-            ].map((s, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-3 ${step > i + 1 ? "opacity-100" : step === i + 1 ? "opacity-100" : "opacity-40"}`}
-              >
+          <div className="flex gap-2">
+            {["Identitas", "Data Diri", "Akun"].map((s, i) => (
+              <div key={i} className="flex items-center gap-2">
                 <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0
-                  ${step > i + 1 ? "bg-emerald-400 text-white" : step === i + 1 ? "bg-white text-indigo-700" : "bg-white/20 text-white"}`}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${step > i + 1 ? "bg-emerald-400 text-white" : step === i + 1 ? "bg-white text-indigo-700" : "bg-white/20 text-white"}`}
                 >
                   {step > i + 1 ? "✓" : i + 1}
                 </div>
@@ -392,6 +391,7 @@ const Register = () => {
                     value={form.jenis_kelamin}
                     onChange={handleChange}
                     error={fieldErrors.jenis_kelamin?.[0]}
+                    icon={UserCircle}
                     required
                   >
                     <option value="">Pilih</option>
@@ -405,6 +405,7 @@ const Register = () => {
                     label="Tanggal Lahir"
                     value={form.tanggal_lahir}
                     onChange={handleChange}
+                    icon={CalendarDays}
                     error={fieldErrors.tanggal_lahir?.[0]}
                     required
                     max={new Date().toISOString().split("T")[0]}
@@ -436,6 +437,7 @@ const Register = () => {
                   onChange={handleChange}
                   icon={MapPin}
                   required
+                  error={fieldErrors.alamat?.[0]}
                 />
 
                 <div className="border-t border-gray-100 pt-4">
@@ -546,64 +548,40 @@ const Register = () => {
                     </p>
                   )}
                 </div>
-
-                {/* Ringkasan */}
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-xs text-gray-600 space-y-1">
-                  <p className="font-semibold text-gray-700 mb-2">
-                    Ringkasan Pendaftaran
-                  </p>
-                  <p>
-                    Nama &nbsp;:{" "}
-                    <span className="font-semibold text-gray-900">
-                      {form.nama}
-                    </span>
-                  </p>
-                  <p>
-                    NIK &nbsp;&nbsp;&nbsp;:{" "}
-                    <span className="font-semibold text-gray-900">
-                      {form.nik}
-                    </span>
-                  </p>
-                  <p>
-                    NISN &nbsp;:{" "}
-                    <span className="font-semibold text-gray-900">
-                      {form.nisn}
-                    </span>
-                  </p>
-                </div>
               </div>
             )}
 
-            {/* Navigation */}
-            <div className="flex gap-3 mt-7">
+            {/* Navigation buttons */}
+            <div className="flex gap-3 mt-6">
               {step > 1 && (
                 <Button
                   type="button"
-                  variant="secondary"
-                  size="lg"
                   onClick={handleBack}
+                  variant="secondary"
                   className="flex-1"
                 >
-                  <ChevronLeft className="w-4 h-4 mr-1" /> Kembali
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Kembali
                 </Button>
               )}
-              {step < 3 ? (
+
+              {step < STEPS.length ? (
                 <Button
                   type="button"
-                  variant="primary"
-                  size="lg"
                   onClick={handleNext}
+                  variant="primary"
                   className="flex-1"
                 >
-                  Lanjut <ChevronRight className="w-4 h-4 ml-1" />
+                  Lanjut
+                  <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               ) : (
                 <Button
                   type="submit"
                   variant="primary"
-                  size="lg"
-                  loading={loading}
                   className="flex-1"
+                  loading={loading}
+                  disabled={loading}
                 >
                   {loading ? "Mendaftarkan..." : "Daftar Sekarang"}
                 </Button>
