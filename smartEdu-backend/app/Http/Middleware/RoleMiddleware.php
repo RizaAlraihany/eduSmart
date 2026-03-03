@@ -11,23 +11,32 @@ class RoleMiddleware
     /**
      * Handle an incoming request.
      *
+     * Penggunaan di route:
+     *   ->middleware('role:admin')           // satu role
+     *   ->middleware('role:admin,guru')       // admin ATAU guru
+     *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  string  ...$roles
      */
-    public function handle(Request $request, Closure $next, ...$roles): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        // Pastikan user sudah login
-        if (!$request->user()) {
+        // Pastikan user sudah terautentikasi
+        if (! $request->user()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated. Silakan login terlebih dahulu.'
+                'message' => 'Unauthenticated. Silakan login terlebih dahulu.',
             ], 401);
         }
 
-        // Cek apakah role user saat ini ada di dalam array $roles yang diizinkan
-        if (!in_array($request->user()->role, $roles)) {
+        $userRole = $request->user()->role;
+
+        // Cek apakah role user ada di daftar role yang diizinkan
+        if (! in_array($userRole, $roles, true)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Forbidden. Anda tidak memiliki akses ke resource ini.'
+                'message' => 'Forbidden. Anda tidak memiliki akses ke resource ini.',
+                'your_role'    => $userRole,
+                'required_roles' => $roles,
             ], 403);
         }
 
