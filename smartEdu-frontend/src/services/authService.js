@@ -5,13 +5,12 @@ const authService = {
    * Login: ambil CSRF cookie dulu, lalu kirim credentials ke backend
    */
   login: async (credentials) => {
-    // Step 1: Ambil CSRF Cookie dari Sanctum
+    // Ambil CSRF Cookie dari Sanctum
     // Route ini ada di /sanctum/csrf-cookie (BUKAN /api/sanctum/csrf-cookie)
     await getCsrfCookie();
 
-    // Step 2: Kirim request login ke API
-    const response = await api.post("/api/login", credentials);
-
+    // Kirim request login ke API
+    const response = await api.post("/login", credentials);
     // Step 3: Simpan data user ke localStorage untuk persistensi
     if (response.data?.data?.user) {
       localStorage.setItem("user", JSON.stringify(response.data.data.user));
@@ -26,7 +25,7 @@ const authService = {
   register: async (userData) => {
     await getCsrfCookie();
 
-    const response = await api.post("/api/register", userData);
+    const response = await api.post("/register", userData);
 
     if (response.data?.data?.user) {
       localStorage.setItem("user", JSON.stringify(response.data.data.user));
@@ -40,7 +39,7 @@ const authService = {
    */
   logout: async () => {
     try {
-      await api.post("/api/logout");
+      await api.post("/logout");
     } catch (error) {
       // Tetap lanjut logout meski request gagal
       console.error("Logout request failed:", error);
@@ -53,7 +52,7 @@ const authService = {
    * Ambil data user yang sedang login dari backend (untuk validasi session)
    */
   getCurrentUser: async () => {
-    const response = await api.get("/api/user");
+    const response = await api.get("/user");
     // Update localStorage dengan data terbaru
     localStorage.setItem("user", JSON.stringify(response.data));
     return response.data;
