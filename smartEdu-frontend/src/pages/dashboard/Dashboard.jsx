@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import dataService from "../../services/dataService";
-import DashboardAdmin from "./DashboardAdmin";
+import { dashboardService } from "../../services/dataService";
 import DashboardGuru from "./DashboardGuru";
 import DashboardSiswa from "./DashboardSiswa";
 
@@ -42,8 +41,7 @@ const Dashboard = () => {
     setLoading(true);
     setError(false);
     try {
-      const res = await dataService.getDashboard();
-      // Handle kedua format response: { data: { ... } } atau langsung { ... }
+      const res = await dashboardService.getStats(); // Handle kedua format response: { data: { ... } } atau langsung { ... }
       setData(res?.data ?? res);
     } catch (err) {
       console.error("Dashboard fetch error:", err);

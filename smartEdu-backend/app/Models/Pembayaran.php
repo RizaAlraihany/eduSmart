@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Pembayaran extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'siswa_id',
@@ -21,12 +22,14 @@ class Pembayaran extends Model
     ];
 
     protected $casts = [
-        'jumlah' => 'decimal:2',
-        'tanggal_pembayaran' => 'datetime',
+        'jumlah'              => 'decimal:2',
+        'tanggal_pembayaran'  => 'datetime',
         'tanggal_jatuh_tempo' => 'date',
     ];
 
-    public function siswa()
+    // ─── Relasi ───────────────────────────────────────────────────────────────
+
+    public function siswa(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Siswa::class);
     }

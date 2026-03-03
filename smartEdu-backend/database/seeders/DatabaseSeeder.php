@@ -10,6 +10,8 @@ use App\Models\MataPelajaran;
 use App\Models\Pengumuman;
 use App\Models\Jadwal;
 use App\Models\Pembayaran;
+use App\Models\Absensi;
+use App\Models\Nilai;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -27,7 +29,7 @@ class DatabaseSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
-        // 2. Create Guru Users and Guru (Dibuat lebih dulu agar bisa jadi Wali Kelas)
+        // 2. Create Guru Users and Guru
         $gurus = [
             ['nama' => 'Dra. Siti Nurhaliza', 'email' => 'siti.nurhaliza@edusmart.com', 'nip' => '197801012003122001'],
             ['nama' => 'Ahmad Fauzi, S.Pd', 'email' => 'ahmad.fauzi@edusmart.com', 'nip' => '198205102006041001'],
@@ -80,7 +82,7 @@ class DatabaseSeeder extends Seeder
             ]));
         }
 
-        // 4. Create Kelas (Memasukkan id Guru sebagai wali_kelas_id)
+        // 4. Create Kelas
         $kelasList = [
             ['nama_kelas' => 'X IPA 1', 'tingkat' => 'X', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 30],
             ['nama_kelas' => 'X IPA 2', 'tingkat' => 'X', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 30],
@@ -91,7 +93,7 @@ class DatabaseSeeder extends Seeder
         $kelasModels = [];
         foreach ($kelasList as $index => $kelas) {
             $kelasModels[] = Kelas::create(array_merge($kelas, [
-                'wali_kelas_id' => $guruModels[$index % count($guruModels)]->id, // Assign Wali Kelas
+                'wali_kelas_id' => $guruModels[$index % count($guruModels)]->id,
                 'status' => 'aktif'
             ]));
         }
@@ -101,7 +103,6 @@ class DatabaseSeeder extends Seeder
         $siswaModels = [];
 
         foreach ($kelasModels as $kelas) {
-            // Kita buat 5 siswa per kelas sebagai dummy yang cukup
             for ($i = 1; $i <= 5; $i++) {
                 $siswaCount++;
                 $nisn = '2024' . str_pad($siswaCount, 6, '0', STR_PAD_LEFT);
@@ -117,7 +118,7 @@ class DatabaseSeeder extends Seeder
                 $siswaModels[] = Siswa::create([
                     'user_id' => $user->id,
                     'kelas_id' => $kelas->id,
-                    'nik' => '320101' . str_pad($siswaCount, 10, '0', STR_PAD_LEFT), // Sesuai migration string(16)
+                    'nik' => '320101' . str_pad($siswaCount, 10, '0', STR_PAD_LEFT),
                     'nisn' => $nisn,
                     'nama' => 'Siswa ' . $siswaCount,
                     'email' => 'siswa' . $siswaCount . '@edusmart.com',
@@ -132,14 +133,24 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // 6. Create Jadwal (Mengisi Jadwal Hari Ini agar tampil di Dashboard)
+        // 6. Create Jadwal
+        $jadwalModels = [];
         $hariList = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
-        foreach ($kelasModels as $kelas) {
-            foreach ($hariList as $hari) {
-                Jadwal::create([
+
+        foreach ($hariList as $hari) {
+            // Kita acak urutan guru agar setiap harinya kelas mendapat guru yang berbeda-beda
+            // dan tidak ada dua kelas yang diajar oleh guru yang sama di jam yang sama
+            $availableGurus = $guruModels;
+            shuffle($availableGurus);
+
+            foreach ($kelasModels as $index => $kelas) {
+                // Ambil guru yang unik untuk kelas ini di jam 07:30 pada hari ini
+                $guru = $availableGurus[$index];
+
+                $jadwalModels[] = Jadwal::create([
                     'kelas_id' => $kelas->id,
                     'mata_pelajaran_id' => $mapelModels[array_rand($mapelModels)]->id,
-                    'guru_id' => $guruModels[array_rand($guruModels)]->id,
+                    'guru_id' => $guru->id,
                     'hari' => $hari,
                     'jam_mulai' => '07:30:00',
                     'jam_selesai' => '09:00:00',
@@ -151,21 +162,91 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // 7. Create Pembayaran (Untuk statistik "Tagihan Lunas" di Dashboard)
+        // 7. Create Absensi (Kehadiran berdasarkan Jadwal)
+        foreach ($jadwalModels as $jadwal) {
+            // Ambil array siswa untuk kelas pada jadwal ini
+            $siswaKelasIni = array_filter($siswaModels, function ($s) use ($jadwal) {
+                return $s->kelas_id == $jadwal->kelas_id;
+            });
+
+            foreach ($siswaKelasIni as $siswa) {
+                Absensi::create([
+                    'siswa_id' => $siswa->id,
+                    'kelas_id' => $jadwal->kelas_id,
+                    'jadwal_id' => $jadwal->id,
+                    'guru_id' => $jadwal->guru_id,
+                    'tanggal' => now()->format('Y-m-d'), // Dianggap jadwal hari ini
+                    'status_kehadiran' => (rand(1, 100) <= 90) ? 'hadir' : 'sakit', // 90% chance hadir
+                    'keterangan' => '-'
+                ]);
+            }
+        }
+
+        // 8. Create Nilai (Tugas Harian, UTS, UAS)
+        foreach ($siswaModels as $siswa) {
+            // Ambil 2 index mata pelajaran yang BERBEDA agar tidak terjadi constraint violation
+            $randomMapelKeys = array_rand($mapelModels, 2);
+
+            foreach ($randomMapelKeys as $index => $mapKey) {
+                $mapel = $mapelModels[$mapKey];
+                $guru = $guruModels[array_rand($guruModels)];
+
+                // Nilai Harian
+                Nilai::create([
+                    'siswa_id' => $siswa->id,
+                    'kelas_id' => $siswa->kelas_id,
+                    'mata_pelajaran_id' => $mapel->id,
+                    'guru_id' => $guru->id,
+                    'jenis_nilai' => 'harian',
+                    'nilai' => rand(75, 98),
+                    'semester' => '1',
+                    'tahun_ajaran' => '2024/2025',
+                    'keterangan' => 'Tugas Harian ' . ($index + 1)
+                ]);
+
+                // Nilai UTS
+                Nilai::create([
+                    'siswa_id' => $siswa->id,
+                    'kelas_id' => $siswa->kelas_id,
+                    'mata_pelajaran_id' => $mapel->id,
+                    'guru_id' => $guru->id,
+                    'jenis_nilai' => 'uts',
+                    'nilai' => rand(70, 95),
+                    'semester' => '1',
+                    'tahun_ajaran' => '2024/2025',
+                    'keterangan' => 'Nilai UTS Ganjil'
+                ]);
+
+                // Nilai UAS
+                Nilai::create([
+                    'siswa_id' => $siswa->id,
+                    'kelas_id' => $siswa->kelas_id,
+                    'mata_pelajaran_id' => $mapel->id,
+                    'guru_id' => $guru->id,
+                    'jenis_nilai' => 'uas',
+                    'nilai' => rand(75, 100),
+                    'semester' => '1',
+                    'tahun_ajaran' => '2024/2025',
+                    'keterangan' => 'Nilai UAS Ganjil'
+                ]);
+            }
+        }
+
+        // 9. Create Pembayaran
         foreach ($siswaModels as $siswa) {
             Pembayaran::create([
                 'siswa_id' => $siswa->id,
                 'jenis_pembayaran' => 'spp',
                 'jumlah' => 500000.00,
                 'tanggal_pembayaran' => now()->subDays(rand(1, 10)),
-                'tanggal_jatuh_tempo' => now()->startOfMonth()->addDays(9), // Tanggal 10
+                'tanggal_jatuh_tempo' => now()->startOfMonth()->addDays(9),
                 'status_pembayaran' => 'sudah_bayar',
                 'metode_pembayaran' => 'transfer',
                 'keterangan' => 'SPP Lunas'
             ]);
         }
 
-        // 8. Create Pengumuman
+        // 10. Create Pengumuman
         $pengumuman = [
             [
                 'judul' => 'Libur Semester Ganjil',

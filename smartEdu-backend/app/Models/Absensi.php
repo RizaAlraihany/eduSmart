@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Absensi extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'siswa_id',
@@ -23,22 +24,24 @@ class Absensi extends Model
         'tanggal' => 'date',
     ];
 
-    public function siswa()
+    // ─── Relasi ───────────────────────────────────────────────────────────────
+
+    public function siswa(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Siswa::class);
     }
 
-    public function kelas()
+    public function kelas(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Kelas::class);
     }
 
-    public function jadwal()
+    public function jadwal(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Jadwal::class);
     }
 
-    public function guru()
+    public function guru(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Guru::class);
     }

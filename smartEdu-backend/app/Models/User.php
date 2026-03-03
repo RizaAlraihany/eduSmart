@@ -27,9 +27,11 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
     }
+
+    // ─── Role helpers ─────────────────────────────────────────────────────────
 
     public function isAdmin(): bool
     {
@@ -46,13 +48,22 @@ class User extends Authenticatable
         return $this->role === 'siswa';
     }
 
-    public function guru()
+    // ─── Relasi profil ────────────────────────────────────────────────────────
+
+    public function guru(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Guru::class);
     }
 
-    public function siswa()
+    public function siswa(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Siswa::class);
+    }
+
+    // ─── Relasi log ───────────────────────────────────────────────────────────
+
+    public function activityLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
     }
 }
