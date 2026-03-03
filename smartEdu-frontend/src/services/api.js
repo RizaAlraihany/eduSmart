@@ -1,20 +1,18 @@
 import axios from "axios";
 
-// BASE_URL tanpa /api — dipakai untuk CSRF dan kebutuhan non-API
-export const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// Instance utama untuk semua request ke /api/*
 const api = axios.create({
-  baseURL: `${BASE_URL}/api`,
-  withCredentials: true,
+  baseURL: BASE_URL,
+  withCredentials: true, // WAJIB untuk Sanctum SPA Cookie Auth
   headers: {
-    "Content-Type": "application/json",
     Accept: "application/json",
+    "Content-Type": "application/json",
     "X-Requested-With": "XMLHttpRequest",
   },
 });
 
-// Request interceptor — ambil XSRF-TOKEN dari cookie
+// Request interceptor — baca XSRF-TOKEN dari cookie dan kirim sebagai header
 api.interceptors.request.use(
   (config) => {
     const token = document.cookie
@@ -31,7 +29,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Response interceptor — handle 401
+// Response interceptor — jika 401, arahkan ke halaman login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -43,7 +41,8 @@ api.interceptors.response.use(
   },
 );
 
-
+// ✅ FIX: BASE_URL sudah terdefinisi di atas, fungsi ini sekarang benar
+// Route CSRF ada di /sanctum/csrf-cookie (BUKAN /api/sanctum/csrf-cookie)
 export const getCsrfCookie = () =>
   axios.get(`${BASE_URL}/sanctum/csrf-cookie`, {
     withCredentials: true,

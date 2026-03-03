@@ -1,23 +1,19 @@
-import api from "./api";
+import api, { getCsrfCookie } from "./api";
 
 const authService = {
   /**
-   * Get CSRF Cookie dari Laravel Sanctum
-   * WAJIB dipanggil sebelum login/register
+   * Login: ambil CSRF cookie dulu, lalu kirim credentials ke backend
    */
-  async getCsrfCookie() {
-    await api.get("/sanctum/csrf-cookie");
-  },
+  login: async (credentials) => {
+    // Step 1: Ambil CSRF Cookie dari Sanctum
+    // Route ini ada di /sanctum/csrf-cookie (BUKAN /api/sanctum/csrf-cookie)
+    await getCsrfCookie();
 
-  /**
-   * Login user
-   */
-  async login(credentials) {
-    await this.getCsrfCookie();
-
+    // Step 2: Kirim request login ke API
     const response = await api.post("/api/login", credentials);
 
-    if (response.data.data && response.data.data.user) {
+    // Step 3: Simpan data user ke localStorage untuk persistensi
+    if (response.data?.data?.user) {
       localStorage.setItem("user", JSON.stringify(response.data.data.user));
     }
 
@@ -25,14 +21,14 @@ const authService = {
   },
 
   /**
-   * Register user baru
+   * Register: ambil CSRF cookie dulu, lalu kirim data registrasi
    */
-  async register(userData) {
-    await this.getCsrfCookie();
+  register: async (userData) => {
+    await getCsrfCookie();
 
     const response = await api.post("/api/register", userData);
 
-    if (response.data.data && response.data.data.user) {
+    if (response.data?.data?.user) {
       localStorage.setItem("user", JSON.stringify(response.data.data.user));
     }
 
@@ -40,40 +36,46 @@ const authService = {
   },
 
   /**
-   * Logout user
+   * Logout: hapus session di backend dan bersihkan localStorage
    */
-  async logout() {
+  logout: async () => {
     try {
       await api.post("/api/logout");
     } catch (error) {
-      console.error("Logout error:", error);
+      // Tetap lanjut logout meski request gagal
+      console.error("Logout request failed:", error);
     } finally {
       localStorage.removeItem("user");
     }
   },
 
   /**
-   * Get current authenticated user
+   * Ambil data user yang sedang login dari backend (untuk validasi session)
    */
-  async getCurrentUser() {
+  getCurrentUser: async () => {
     const response = await api.get("/api/user");
+    // Update localStorage dengan data terbaru
+    localStorage.setItem("user", JSON.stringify(response.data));
     return response.data;
   },
 
   /**
-   * Get stored user dari localStorage
+   * Ambil data user dari localStorage (tidak hit backend)
    */
-  getStoredUser() {
-    const user = localStorage.getItem("user");
-    return user ? JSON.parse(user) : null;
+  getStoredUser: () => {
+    try {
+      const user = localStorage.getItem("user");
+      return user ? JSON.parse(user) : null;
+    } catch {
+      return null;
+    }
   },
 
   /**
-   * Check apakah user sudah login
-   * Untuk cookie-based, kita cek apakah ada user di localStorage
+   * Cek apakah user dianggap authenticated berdasarkan localStorage
    */
-  isAuthenticated() {
-    return !!this.getStoredUser();
+  isAuthenticated: () => {
+    return !!localStorage.getItem("user");
   },
 };
 

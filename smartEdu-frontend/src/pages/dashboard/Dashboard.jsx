@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 const Dashboard = () => {
-  const { user, isAdmin, isGuru, isSiswa } = useAuth(); // ✅ PERBAIKAN: useAuth bukan useAuthContext
+  const { user, isAdmin, isGuru, isSiswa } = useAuth(); 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
