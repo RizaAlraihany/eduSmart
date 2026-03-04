@@ -1,10 +1,3 @@
-/**
- * src/app/providers/AuthProvider.jsx
- *
- * SECURITY FIX vs AuthContext.jsx lama:
- *   ❌ Lama: getStoredUser() dari localStorage → role bisa dispoofing DevTools
- *   ✅ Baru: user HANYA di memory, restore via GET /api/user (Sanctum httpOnly cookie)
- */
 import {
   createContext,
   useState,
@@ -20,14 +13,15 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Saat app mount: cek sesi via server (bukan localStorage)
+  // ── Restore sesi saat app mount ──────────────────────────────────────────
   useEffect(() => {
     const restore = async () => {
       try {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
       } catch {
-        // 401 = tidak ada sesi → user = null, interceptor redirect ke /login
+        // 401 = tidak ada sesi aktif → biarkan user = null
+        // api.js interceptor sudah handle redirect ke /login
         setUser(null);
       } finally {
         setLoading(false);
@@ -36,13 +30,14 @@ export const AuthProvider = ({ children }) => {
     restore();
   }, []);
 
-  // Dengerin event dari api.js interceptor saat 401 terdeteksi
+  // ── Listen event 401 dari api.js interceptor ─────────────────────────────
   useEffect(() => {
-    const handleLogout = () => setUser(null);
-    window.addEventListener("auth:logout", handleLogout);
-    return () => window.removeEventListener("auth:logout", handleLogout);
+    const handleForceLogout = () => setUser(null);
+    window.addEventListener("auth:logout", handleForceLogout);
+    return () => window.removeEventListener("auth:logout", handleForceLogout);
   }, []);
 
+  // ── Auth actions ─────────────────────────────────────────────────────────
   const login = useCallback(async (credentials) => {
     const data = await authService.login(credentials);
     setUser(data?.data?.user ?? null);
@@ -60,6 +55,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   }, []);
 
+  // ── Context value ─────────────────────────────────────────────────────────
   const value = {
     user,
     loading,
@@ -75,7 +71,6 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Hook — import ini dari shared/hooks/useAuth.js, bukan langsung dari sini
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within <AuthProvider>");
