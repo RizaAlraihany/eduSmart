@@ -1,54 +1,54 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./providers/AuthProvider";
-import { useAuth } from "../shared/hooks/useAuth";
-import DashboardLayout from "../shared/components/layout/DashboardLayout";
-import ProtectedRoute from "../shared/guards/ProtectedRoute";
+import { AuthProvider } from "@/app/providers/AuthProvider";
+import { useAuth } from "@/shared/hooks/useAuth";
+import DashboardLayout from "@/shared/components/layout/DashboardLayout";
+import ProtectedRoute from "@/shared/guards/ProtectedRoute";
 
-// ── Non-lazy: dibutuhkan segera saat app load ─────────────────────────────────
-import Home from "../features/landing/pages/Home";
-import Login from "../features/auth/pages/Login";
-import Register from "../features/auth/pages/Register";
-import Dashboard from "../features/dashboard/pages/Dashboard";
-import Unauthorized from "../shared/pages/Unauthorized";
+// Non-lazy: dibutuhkan segera saat app load 
+import Home from "@/features/landing/pages/Home";
+import Login from "@/features/auth/pages/Login";
+import Register from "@/features/auth/pages/Register";
+import Dashboard from "@/features/dashboard/pages/Dashboard";
+import Unauthorized from "@/shared/pages/Unauthorized";
 
-// ── Lazy — Admin only ─────────────────────────────────────────────────────────
-const SiswaPage = lazy(() => import("../features/siswa/pages/SiswaPage"));
-const GuruPage = lazy(() => import("../features/guru/pages/GuruPage"));
-const KelasPage = lazy(() => import("../features/kelas/pages/KelasPage"));
+// Lazy — Admin only 
+const SiswaPage = lazy(() => import("@/features/siswa/pages/SiswaPage"));
+const GuruPage = lazy(() => import("@/features/guru/pages/GuruPage"));
+const KelasPage = lazy(() => import("@/features/kelas/pages/KelasPage"));
 const MataPelajaranPage = lazy(
-  () => import("../features/mata-pelajaran/pages/MataPelajaranPage"),
+  () => import("@/features/mata-pelajaran/pages/MataPelajaranPage"),
 );
 const PembayaranPage = lazy(
-  () => import("../features/pembayaran/pages/PembayaranPage"),
+  () => import("@/features/pembayaran/pages/PembayaranPage"),
 );
 
-// ── Lazy — Admin + Guru ───────────────────────────────────────────────────────
-const JadwalPage = lazy(() => import("../features/jadwal/pages/JadwalPage"));
-const AbsensiPage = lazy(() => import("../features/absensi/pages/AbsensiPage"));
-const NilaiPage = lazy(() => import("../features/nilai/pages/NilaiPage"));
-const TugasPage = lazy(() => import("../features/tugas/pages/TugasPage"));
+// Lazy — Admin + Guru 
+const JadwalPage = lazy(() => import("@/features/jadwal/pages/JadwalPage"));
+const AbsensiPage = lazy(() => import("@/features/absensi/pages/AbsensiPage"));
+const NilaiPage = lazy(() => import("@/features/nilai/pages/NilaiPage"));
+const TugasPage = lazy(() => import("@/features/tugas/pages/TugasPage"));
 
-// ── Lazy — Semua role ─────────────────────────────────────────────────────────
+// Lazy — Semua role 
 const PengumumanPage = lazy(
-  () => import("../features/pengumuman/pages/PengumumanPage"),
+  () => import("@/features/pengumuman/pages/PengumumanPage"),
 );
 
-// ── Loader fallback ───────────────────────────────────────────────────────────
+// Loader fallback 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[200px]">
     <div className="h-9 w-9 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
   </div>
 );
 
-// ── GuestRoute: redirect ke /dashboard jika sudah login ──────────────────────
+// GuestRoute: redirect ke /dashboard jika sudah login 
 const GuestRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return <PageLoader />;
   return !isAuthenticated ? children : <Navigate to="/dashboard" replace />;
 };
 
-// ── Route tree ────────────────────────────────────────────────────────────────
+// Route tree 
 const AppRoutes = () => (
   <Routes>
     {/* Public */}
@@ -200,7 +200,7 @@ const AppRoutes = () => (
   </Routes>
 );
 
-// ── App root ──────────────────────────────────────────────────────────────────
+// App root 
 const App = () => (
   <BrowserRouter>
     <AuthProvider>

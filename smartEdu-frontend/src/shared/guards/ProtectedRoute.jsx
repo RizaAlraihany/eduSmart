@@ -1,14 +1,5 @@
-/**
- * src/shared/guards/ProtectedRoute.jsx
- *
- * Guard tunggal untuk semua protected routes.
- * Usage:
- *   <ProtectedRoute>                              — cukup login
- *   <ProtectedRoute requiredRole="admin">         — admin only
- *   <ProtectedRoute requiredRole={["admin","guru"]}>  — admin atau guru
- */
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 const AuthLoader = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50">

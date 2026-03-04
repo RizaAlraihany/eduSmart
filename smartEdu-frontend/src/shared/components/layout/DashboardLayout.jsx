@@ -1,14 +1,8 @@
-/**
- * src/shared/components/layout/DashboardLayout.jsx
- *
- * Di-render SEKALI via App.jsx. Child pages render lewat <Outlet />.
- * JANGAN import komponen ini di dalam halaman dashboard manapun.
- */
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Menu, X, Bell } from "lucide-react";
-import Sidebar from "./Sidebar";
-import { useAuth } from "../../hooks/useAuth";
+import Sidebar from "@/Sidebar";
+import { useAuth } from "@/hooks/useAuth";
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);

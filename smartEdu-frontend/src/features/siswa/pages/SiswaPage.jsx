@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Search, Plus, RefreshCw, X, AlertCircle } from "lucide-react";
-import api from "../../../lib/api";
-import { queryKeys } from "../../../lib/queryKeys";
+import api from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 // Query fns 
 const fetchSiswa = (params) =>

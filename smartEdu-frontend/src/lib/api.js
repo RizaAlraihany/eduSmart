@@ -12,7 +12,7 @@ const api = axios.create({
   },
 });
 
-// ── Request interceptor: inject XSRF-TOKEN dari Sanctum cookie ───────────────
+// Request interceptor: inject XSRF-TOKEN dari Sanctum cookie 
 api.interceptors.request.use(
   (config) => {
     const raw = document.cookie
@@ -29,7 +29,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// ── Response interceptor: handle error global ─────────────────────────────────
+// Response interceptor: handle error global 
 api.interceptors.response.use(
   (response) => response,
   (error) => {

@@ -8,8 +8,8 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
-import api from "../../../lib/api";
-import { queryKeys } from "../../../lib/queryKeys";
+import api from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 // Query fn — diletakkan di luar komponen agar tidak recreated tiap render 
 const fetchGuru = (params) => api.get("/guru", { params }).then((r) => r.data);

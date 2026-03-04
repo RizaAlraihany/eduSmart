@@ -3,10 +3,10 @@
  * Role-router murni. TIDAK ada fetch di sini.
  * Setiap role component mengurus fetch-nya sendiri.
  */
-import { useAuth } from "../../../shared/hooks/useAuth";
-import DashboardAdmin from "./DashboardAdmin";
-import DashboardGuru from "./DashboardGuru";
-import DashboardSiswa from "./DashboardSiswa";
+import { useAuth } from "@/shared/hooks/useAuth";
+import DashboardAdmin from "@/DashboardAdmin";
+import DashboardGuru from "@/DashboardGuru";
+import DashboardSiswa from "@/DashboardSiswa";
 
 const Dashboard = () => {
   const { isAdmin, isGuru, isSiswa } = useAuth();

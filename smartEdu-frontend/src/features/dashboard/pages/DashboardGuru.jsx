@@ -20,10 +20,10 @@ import {
   XCircle,
   Layers,
 } from "lucide-react";
-import { useAuth } from "../../../shared/hooks/useAuth";
-import { dashboardService } from "../../../services/dataService";
+import { useAuth } from "@/shared/hooks/useAuth";
+import { dashboardService } from "@/services/dataService";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers 
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -115,7 +115,7 @@ const deadlineInfo = (sisa) => {
   };
 };
 
-// ─── Loading Skeleton ─────────────────────────────────────────────────────────
+// Loading Skeleton 
 
 const Sk = ({ h = "h-4", w = "w-full", cls = "" }) => (
   <div className={`${h} ${w} ${cls} bg-gray-200 rounded-lg animate-pulse`} />
@@ -153,7 +153,7 @@ const Loading = () => (
   </div>
 );
 
-// ─── Error State ──────────────────────────────────────────────────────────────
+// Error State 
 
 const ErrorState = ({ onRetry }) => (
   <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -175,7 +175,7 @@ const ErrorState = ({ onRetry }) => (
   </div>
 );
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// Sub-components 
 
 const StatCard = ({ icon, bgIcon, label, value, sub, urgent }) => (
   <div
@@ -418,7 +418,7 @@ const AlertAbsensi = ({ kelasBelumAbsen, onNavigate }) => {
   );
 };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// Main Component 
 
 const DashboardGuru = () => {
   const { user } = useAuth();
@@ -464,9 +464,7 @@ const DashboardGuru = () => {
   const tugasPendingGrading = data.tugas_pending_grading ?? [];
   const pengumuman = data.pengumuman ?? [];
 
-  // Total siswa perwalian: sum semua total_siswa dari kelas unik
-  // Dihitung dari jadwal_hari_ini atau fallback ke 0 — endpoint tidak memberi field spesifik
-  // (jika endpoint belum memberikan total_siswa_perwalian, tampilkan totalKelasSemester * avg)
+ 
   const totalSiswaPerwalian = data.total_siswa_perwalian ?? null;
 
   const sapaan = sapaanGuru(namaGuru);
@@ -486,7 +484,7 @@ const DashboardGuru = () => {
 
   return (
     <div className="space-y-5 pb-8">
-      {/* ── Hero Sapaan ──────────────────────────────────────────────────────── */}
+      {/* Hero Sapaan */}
       <div className="relative bg-gradient-to-br from-emerald-600 via-green-700 to-teal-700 rounded-2xl p-5 sm:p-6 text-white shadow-lg overflow-hidden">
         <div className="absolute -top-8 -right-8 w-48 h-48 bg-white/10 rounded-full pointer-events-none" />
         <div className="absolute bottom-0 left-1/2 w-32 h-32 bg-white/5 rounded-full pointer-events-none" />
@@ -542,7 +540,7 @@ const DashboardGuru = () => {
         </div>
       </div>
 
-      {/* ── Quick Actions (Primary) ───────────────────────────────────────────── */}
+      {/* Quick Actions (Primary) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <PrimaryAction
           icon={<Plus className="w-5 h-5 text-white" />}
@@ -560,7 +558,7 @@ const DashboardGuru = () => {
         />
       </div>
 
-      {/* ── Alert: Kelas belum absensi ────────────────────────────────────────── */}
+      {/* Alert: Kelas belum absensi */}
       {adaKlasBelumAbsen && (
         <AlertAbsensi
           kelasBelumAbsen={kelasBelumAbsen}
@@ -568,7 +566,7 @@ const DashboardGuru = () => {
         />
       )}
 
-      {/* ── Alert: Tugas deadline kritis ─────────────────────────────────────── */}
+      {/* Alert: Tugas deadline kritis */}
       {adaTugasKritis && (
         <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-4">
           <div className="w-9 h-9 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -592,7 +590,7 @@ const DashboardGuru = () => {
         </div>
       )}
 
-      {/* ── Summary Cards ────────────────────────────────────────────────────── */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <StatCard
           icon={<Calendar className="w-5 h-5 text-emerald-600" />}
@@ -626,7 +624,7 @@ const DashboardGuru = () => {
         />
       </div>
 
-      {/* ── Jadwal Mengajar Hari Ini ──────────────────────────────────────────── */}
+      {/* Jadwal Mengajar Hari Ini */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -674,7 +672,7 @@ const DashboardGuru = () => {
         )}
       </div>
 
-      {/* ── Pending Actions: Tugas Belum Dinilai ─────────────────────────────── */}
+      {/* Pending Actions: Tugas Belum Dinilai */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -753,7 +751,7 @@ const DashboardGuru = () => {
         )}
       </div>
 
-      {/* ── Pengumuman ────────────────────────────────────────────────────────── */}
+      {/* Pengumuman */}
       {pengumuman.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-4">
@@ -825,7 +823,7 @@ const DashboardGuru = () => {
         </div>
       )}
 
-      {/* ── Refresh ──────────────────────────────────────────────────────────── */}
+      {/* Refresh */}
       <div className="flex justify-center pt-1">
         <button
           onClick={fetchData}

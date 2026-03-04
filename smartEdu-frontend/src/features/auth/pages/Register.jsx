@@ -19,9 +19,9 @@ import {
   UserCircle,
   CalendarDays,
 } from "lucide-react";
-import api from "../../../services/api";
-import Button from "../../../components/common/Button";
-import Input from "../../../components/common/Input";
+import api from "@/lib/api";
+import Button from "@/shared/components/ui/Button";
+import Input from "@/shared/components/ui/Input";
 
 const STEPS = [
   { id: 1, label: "Identitas" },

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { TrendingUp, RefreshCw, X } from "lucide-react";
-import { nilaiService } from "../../services/dataService";
+import { nilaiService } from "@/services/dataService";
 
 const JENIS = ["tugas", "harian", "uts", "uas", "praktek"];
 const SEMESTER = [

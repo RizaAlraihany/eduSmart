@@ -9,8 +9,8 @@ import {
   AlertCircle,
   Users,
 } from "lucide-react";
-import api from "../../../lib/api";
-import { queryKeys } from "../../../lib/queryKeys";
+import api from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 // Query fns 
 const fetchKelas = (params) =>

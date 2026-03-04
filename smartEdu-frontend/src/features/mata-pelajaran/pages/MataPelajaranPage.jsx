@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { BookOpen, Search, Plus, RefreshCw, X, Target } from "lucide-react";
-import { mapelService } from "../../services/dataService";
+import { mapelService } from "@/services/dataService";
 
 const Badge = ({ status }) => {
   const map = {

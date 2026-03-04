@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, RefreshCw, X, Clock } from "lucide-react";
-import { jadwalService } from "../../services/dataService";
+import { jadwalService } from "@/services/dataService";
 
 const HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const HARI_COLOR = {

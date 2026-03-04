@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { DollarSign, RefreshCw, X, AlertCircle } from "lucide-react";
-import { pembayaranService } from "../../services/dataService";
+import { pembayaranService } from "@/services/dataService";
 
 const STATUS_MAP = {
   belum_bayar: { label: "Belum Bayar", cls: "bg-red-100 text-red-700" },

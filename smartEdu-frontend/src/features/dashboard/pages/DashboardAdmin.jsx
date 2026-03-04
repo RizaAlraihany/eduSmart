@@ -1,16 +1,3 @@
-/**
- * features/dashboard/pages/DashboardAdmin.jsx
- *
- * PRODUCTION STANDARD:
- * ✅ Skeleton loading (tidak kosong saat fetch)
- * ✅ Error state dengan retry
- * ✅ Empty state per section
- * ✅ Safe optional chaining di setiap field
- * ✅ ZERO default HTML styling
- * ✅ Fully responsive (sm/md/lg breakpoints)
- * ✅ Warna semantik: hijau=sukses, merah=error, kuning=warning, biru=info
- */
-
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -26,10 +13,10 @@ import {
   UserX,
   Inbox,
 } from "lucide-react";
-import { useAuth } from "../../../shared/hooks/useAuth";
-import dashboardService from "../services/dashboardService";
+import { useAuth } from "@/shared/hooks/useAuth";
+import dashboardService from "@/services/dashboardService";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers 
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -77,7 +64,7 @@ const getActionLabel = (action) =>
     cls: "bg-gray-100 text-gray-600",
   };
 
-// ─── Skeleton Loading ─────────────────────────────────────────────────────────
+// Skeleton Loading 
 const SkeletonPulse = ({ className }) => (
   <div className={`bg-gray-200 rounded-lg animate-pulse ${className}`} />
 );
@@ -119,7 +106,7 @@ const DashboardSkeleton = () => (
   </div>
 );
 
-// ─── Error State ──────────────────────────────────────────────────────────────
+// Error State 
 const ErrorState = ({ onRetry }) => (
   <div className="flex flex-col items-center justify-center min-h-[400px] gap-5">
     <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center">
@@ -143,7 +130,7 @@ const ErrorState = ({ onRetry }) => (
   </div>
 );
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
+// Empty State 
 const EmptyState = ({ icon: Icon, title, description }) => (
   <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
     <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
@@ -156,7 +143,7 @@ const EmptyState = ({ icon: Icon, title, description }) => (
   </div>
 );
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
+// Stat Card 
 const StatCard = ({ icon: Icon, iconBg, label, value, sub, trend }) => (
   <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow duration-200 group">
     <div
@@ -178,7 +165,7 @@ const StatCard = ({ icon: Icon, iconBg, label, value, sub, trend }) => (
   </div>
 );
 
-// ─── Progress Row (Progres Nilai Guru) ───────────────────────────────────────
+// Progress Row (Progres Nilai Guru) 
 const ProgressRow = ({ item }) => {
   const pct = item?.persen_selesai ?? 0;
   const barColor =
@@ -212,7 +199,7 @@ const ProgressRow = ({ item }) => {
   );
 };
 
-// ─── Log Row ──────────────────────────────────────────────────────────────────
+// Log Row 
 const LogRow = ({ log }) => {
   const action = getActionLabel(log?.action);
   return (
@@ -244,7 +231,7 @@ const LogRow = ({ log }) => {
   );
 };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// Main Component 
 const DashboardAdmin = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -276,7 +263,7 @@ const DashboardAdmin = () => {
   if (error) return <ErrorState onRetry={fetchData} />;
   if (!data) return null;
 
-  // ── Safe field mapping ────────────────────────────────────────────────────
+  // Safe field mapping 
   const totalSiswa = data?.total_siswa_aktif ?? 0;
   const totalGuru = data?.total_guru_aktif ?? 0;
   const totalStaf = data?.total_staf_aktif ?? 0;
@@ -290,7 +277,7 @@ const DashboardAdmin = () => {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* ── Hero Section ────────────────────────────────────────────────────── */}
+      {/* Hero Section */}
       <div className="relative bg-gradient-to-br from-slate-800 via-slate-900 to-indigo-900 rounded-2xl p-6 sm:p-8 text-white overflow-hidden">
         {/* Decorative circles */}
         <div className="absolute -top-10 -right-10 w-56 h-56 bg-white/5 rounded-full pointer-events-none" />
@@ -324,7 +311,7 @@ const DashboardAdmin = () => {
         </div>
       </div>
 
-      {/* ── Stat Cards ──────────────────────────────────────────────────────── */}
+      {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Users}
@@ -356,7 +343,7 @@ const DashboardAdmin = () => {
         />
       </div>
 
-      {/* ── Kehadiran Hari Ini ───────────────────────────────────────────────── */}
+      {/* Kehadiran Hari Ini */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -415,7 +402,7 @@ const DashboardAdmin = () => {
         </div>
       </div>
 
-      {/* ── 2-Column Section: Progres Nilai + Log Aktivitas ─────────────────── */}
+      {/* Column Section: Progres Nilai + Log Aktivitas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Progres Input Nilai Guru */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">

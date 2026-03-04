@@ -1,11 +1,4 @@
-/**
- * src/features/dashboard/services/dashboardService.js
- *
- * FIX KRITIS dari dataService.js lama:
- *   ❌ /dashboard/DashboardAdmin  (404 — case wrong)
- *   ✅ /dashboard/admin           (sesuai routes/api.php)
- */
-import api from "../../../lib/api";
+import api from "@/lib/api";
 
 const dashboardService = {
   getAdmin: () => api.get("/dashboard/admin").then((r) => r.data),

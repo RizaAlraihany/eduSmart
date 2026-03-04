@@ -1,17 +1,17 @@
-// ─── API ─────────────────────────────────────────────────────────────────────
+// API 
 export const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 export const SANCTUM_URL =
   import.meta.env.VITE_SANCTUM_URL || "http://localhost:8000";
 
-// ─── Role ─────────────────────────────────────────────────────────────────────
+// Role 
 export const ROLES = {
   ADMIN: "admin",
   GURU: "guru",
   SISWA: "siswa",
 };
 
-// ─── Status ──────────────────────────────────────────────────────────────────
+// Status 
 export const STATUS_SISWA = {
   AKTIF: "aktif",
   NONAKTIF: "nonaktif",
@@ -43,13 +43,13 @@ export const TIPE_PENGUMUMAN = {
   BIASA: "biasa",
 };
 
-// ─── Hari ────────────────────────────────────────────────────────────────────
+// Hari 
 export const HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
-// ─── Tingkat kelas ────────────────────────────────────────────────────────────
+// Tingkat kelas 
 export const TINGKAT = ["X", "XI", "XII"];
 
-// ─── Jenis kelamin ────────────────────────────────────────────────────────────
+// Jenis kelamin 
 export const JENIS_KELAMIN = {
   L: "Laki-laki",
   P: "Perempuan",

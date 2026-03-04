@@ -1,13 +1,6 @@
-/**
- * shared/pages/Unauthorized.jsx
- *
- * Halaman yang ditampilkan ketika user authenticated tapi tidak punya akses.
- * (HTTP 403 atau role check gagal di ProtectedRoute)
- */
-
 import { useNavigate } from "react-router-dom";
 import { ShieldOff, ArrowLeft } from "lucide-react";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 const Unauthorized = () => {
   const navigate = useNavigate();

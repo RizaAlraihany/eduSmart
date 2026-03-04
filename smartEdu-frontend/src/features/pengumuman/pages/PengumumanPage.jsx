@@ -7,7 +7,7 @@ import {
   CalendarDays,
   Users,
 } from "lucide-react";
-import { pengumumanService } from "../../services/dataService";
+import { pengumumanService } from "@/services/dataService";
 
 const TIPE_MAP = {
   urgent: {

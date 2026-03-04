@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ClipboardCheck, RefreshCw, X, CalendarDays } from "lucide-react";
-import { absensiService } from "../../services/dataService";
+import { absensiService } from "@/services/dataService";
 
 const STATUS_MAP = {
   hadir: { label: "Hadir", cls: "bg-green-100 text-green-700" },
