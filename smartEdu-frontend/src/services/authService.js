@@ -1,4 +1,4 @@
-import api, { getCsrfCookie } from "./api";
+import api, { getCsrfCookie } from "../lib/api";
 
 const authService = {
   /**
