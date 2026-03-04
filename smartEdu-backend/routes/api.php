@@ -18,12 +18,13 @@ use App\Http\Controllers\AbsensiController;
 use App\Http\Controllers\NilaiController;
 use App\Http\Controllers\PembayaranController;
 use App\Http\Controllers\PengumumanController;
+use App\Http\Controllers\TugasController;
 
 // ============================================================================
 // PUBLIC ROUTES — Tidak perlu login
 // ============================================================================
 
-Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login');
+Route::post('/login',    [AuthenticatedSessionController::class, 'store'])->name('login');
 Route::post('/register', [RegisteredUserController::class, 'store'])->name('register');
 
 // ============================================================================
@@ -41,24 +42,40 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Logout
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
-    // Dashboard — semua role bisa akses, controller yang filter per role
+    // ── DASHBOARD ─────────────────────────────────────────────────────────────
+    // Single endpoint lama — masih dipakai Dashboard.jsx (jangan hapus)
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
+    // Dedicated endpoint per role
+    Route::get('/dashboard/siswa', [DashboardController::class, 'siswa']);
+    Route::get('/dashboard/guru',  [DashboardController::class, 'guru']);
+    Route::get('/dashboard/admin', [DashboardController::class, 'admin']);
+
     // ── PENGUMUMAN — read: semua role, write: admin only ──────────────────────
-    Route::get('/pengumuman',          [PengumumanController::class, 'index'])->name('pengumuman.index');
+    Route::get('/pengumuman',              [PengumumanController::class, 'index'])->name('pengumuman.index');
     Route::get('/pengumuman/{pengumuman}', [PengumumanController::class, 'show'])->name('pengumuman.show');
 
     Route::middleware(['role:admin'])->group(function () {
-        Route::post('/pengumuman',                    [PengumumanController::class, 'store'])->name('pengumuman.store');
-        Route::put('/pengumuman/{pengumuman}',         [PengumumanController::class, 'update'])->name('pengumuman.update');
-        Route::delete('/pengumuman/{pengumuman}',      [PengumumanController::class, 'destroy'])->name('pengumuman.destroy');
+        Route::post('/pengumuman',                [PengumumanController::class, 'store'])->name('pengumuman.store');
+        Route::put('/pengumuman/{pengumuman}',    [PengumumanController::class, 'update'])->name('pengumuman.update');
+        Route::delete('/pengumuman/{pengumuman}', [PengumumanController::class, 'destroy'])->name('pengumuman.destroy');
+    });
+
+    // ── TUGAS — read: semua role (difilter di controller), write: admin + guru ─
+    Route::get('/tugas',         [TugasController::class, 'index'])->name('tugas.index');
+    Route::get('/tugas/{tugas}', [TugasController::class, 'show'])->name('tugas.show');
+
+    Route::middleware(['role:admin,guru'])->group(function () {
+        Route::post('/tugas',           [TugasController::class, 'store'])->name('tugas.store');
+        Route::put('/tugas/{tugas}',    [TugasController::class, 'update'])->name('tugas.update');
+        Route::delete('/tugas/{tugas}', [TugasController::class, 'destroy'])->name('tugas.destroy');
     });
 
     // ── ADMIN + GURU — jadwal, absensi, nilai ────────────────────────────────
     Route::middleware(['role:admin,guru'])->group(function () {
-        Route::apiResource('/jadwal',   JadwalController::class);
-        Route::apiResource('/absensi',  AbsensiController::class);
-        Route::apiResource('/nilai',    NilaiController::class);
+        Route::apiResource('/jadwal',  JadwalController::class);
+        Route::apiResource('/absensi', AbsensiController::class);
+        Route::apiResource('/nilai',   NilaiController::class);
     });
 
     // ── ADMIN ONLY — data master ──────────────────────────────────────────────
