@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { dashboardService } from "../../services/dataService";
+import { dashboardService } from "../../services/dataService"; // ✅ named import
+import DashboardAdmin from "./DashboardAdmin";
 import DashboardGuru from "./DashboardGuru";
 import DashboardSiswa from "./DashboardSiswa";
 
@@ -41,7 +42,10 @@ const Dashboard = () => {
     setLoading(true);
     setError(false);
     try {
-      const res = await dashboardService.getStats(); // Handle kedua format response: { data: { ... } } atau langsung { ... }
+      // ✅ dashboardService.getStats() → GET /api/dashboard → return r.data
+      // r.data sudah berupa { success, message, data: {...} }
+      // maka kita drill ke .data untuk dapat payload dashboard
+      const res = await dashboardService.getStats();
       setData(res?.data ?? res);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
