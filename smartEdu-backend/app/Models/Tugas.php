@@ -28,7 +28,7 @@ class Tugas extends Model
         'tanggal_deadline'  => 'date',
     ];
 
-    // ─── Relasi ───────────────────────────────────────────────────────────────
+    // Relasi 
 
     public function guru(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -54,7 +54,7 @@ class Tugas extends Model
         return $this->hasMany(Nilai::class);
     }
 
-    // ─── Scopes ───────────────────────────────────────────────────────────────
+    // Scopes 
 
     /**
      * Tugas yang masih aktif dan belum lewat deadline.

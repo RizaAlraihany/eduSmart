@@ -15,8 +15,8 @@ class Nilai extends Model
         'kelas_id',
         'mata_pelajaran_id',
         'guru_id',
-        'tugas_id',       // nullable — link ke tugas jika nilai ini untuk tugas tertentu
-        'jenis_nilai',    // tugas | pts | uts | uas | praktek | harian
+        'tugas_id',      
+        'jenis_nilai',   
         'nilai',
         'semester',
         'tahun_ajaran',
@@ -27,7 +27,7 @@ class Nilai extends Model
         'nilai' => 'decimal:2',
     ];
 
-    // ─── Relasi ───────────────────────────────────────────────────────────────
+    // Relasi 
 
     public function siswa(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

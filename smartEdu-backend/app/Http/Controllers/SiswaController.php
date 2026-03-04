@@ -40,22 +40,11 @@ class SiswaController extends Controller
 
         $siswas = $query->latest()->paginate($request->get('per_page', 15));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar Data Siswa',
-            'data'    => $siswas->items(),
-            'meta'    => [
-                'current_page' => $siswas->currentPage(),
-                'last_page'    => $siswas->lastPage(),
-                'per_page'     => $siswas->perPage(),
-                'total'        => $siswas->total(),
-            ],
-        ], 200);
+        return $this->paginatedResponse($siswas, 'Daftar Data Siswa');
     }
 
     /**
      * POST /api/siswa
-     * Buat akun User + profil Siswa dalam satu transaksi.
      */
     public function store(Request $request): JsonResponse
     {
@@ -100,25 +89,16 @@ class SiswaController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Data siswa berhasil ditambahkan',
-                'data'    => $siswa->load(['user', 'kelas']),
-            ], 201);
+            return $this->createdResponse($siswa->load(['user', 'kelas']), 'Data siswa berhasil ditambahkan');
         } catch (\Throwable $e) {
             DB::rollBack();
-
-            Log::error('[SiswaController@store] Gagal menyimpan data siswa', [
+            Log::error('[SiswaController@store]', [
                 'error'   => $e->getMessage(),
-                'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
                 'request' => $request->except(['password']),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 
@@ -127,11 +107,7 @@ class SiswaController extends Controller
      */
     public function show(Siswa $siswa): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'Detail Data Siswa',
-            'data'    => $siswa->load(['user', 'kelas']),
-        ], 200);
+        return $this->successResponse($siswa->load(['user', 'kelas']), 'Detail Data Siswa');
     }
 
     /**
@@ -176,31 +152,21 @@ class SiswaController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Data siswa berhasil diperbarui',
-                'data'    => $siswa->load(['user', 'kelas']),
-            ], 200);
+            return $this->successResponse($siswa->load(['user', 'kelas']), 'Data siswa berhasil diperbarui');
         } catch (\Throwable $e) {
             DB::rollBack();
-
-            Log::error('[SiswaController@update] Gagal memperbarui data siswa', [
+            Log::error('[SiswaController@update]', [
                 'siswa_id' => $siswa->id,
                 'error'    => $e->getMessage(),
-                'file'     => $e->getFile(),
                 'line'     => $e->getLine(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 
     /**
      * DELETE /api/siswa/{siswa}
-     * Hapus siswa beserta user account-nya.
      */
     public function destroy(Siswa $siswa): JsonResponse
     {
@@ -215,24 +181,16 @@ class SiswaController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Data siswa berhasil dihapus',
-            ], 200);
+            return $this->successResponse(null, 'Data siswa berhasil dihapus');
         } catch (\Throwable $e) {
             DB::rollBack();
-
-            Log::error('[SiswaController@destroy] Gagal menghapus data siswa', [
+            Log::error('[SiswaController@destroy]', [
                 'siswa_id' => $siswa->id,
                 'error'    => $e->getMessage(),
-                'file'     => $e->getFile(),
                 'line'     => $e->getLine(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 }

@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\RateLimiter;
 
 // Auth Controllers
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -20,18 +22,37 @@ use App\Http\Controllers\PembayaranController;
 use App\Http\Controllers\PengumumanController;
 use App\Http\Controllers\TugasController;
 
-// ============================================================================
+// RATE LIMITER DEFINITIONS
+
+RateLimiter::for('login', function (Request $request) {
+    return [
+        // per IP: blok brute force / bot scanner
+        // 20 attempt/menit per IP, terlepas dari email yang dicoba
+        Limit::perMinute(20)->by('ip:' . $request->ip()),
+
+        // per email: blok credential stuffing ke satu akun dari banyak IP
+        // 10 attempt/menit per email address
+        Limit::perMinute(10)->by('email:' . strtolower($request->input('email', ''))),
+    ];
+});
+
+RateLimiter::for('api', function (Request $request) {
+    // 120 request/menit per user authenticated, fallback ke IP jika belum login
+    return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
+});
+
 // PUBLIC ROUTES — Tidak perlu login
-// ============================================================================
 
-Route::post('/login',    [AuthenticatedSessionController::class, 'store'])->name('login');
-Route::post('/register', [RegisteredUserController::class, 'store'])->name('register');
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+    ->middleware('throttle:login')
+    ->name('login');
 
-// ============================================================================
+Route::post('/register', [RegisteredUserController::class, 'store'])
+    ->name('register');
+
 // PROTECTED ROUTES — Harus login
-// ============================================================================
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // Info user yang sedang login
     Route::get('/user', fn(Request $request) => response()->json([
@@ -42,8 +63,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Logout
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
-    // ── DASHBOARD ─────────────────────────────────────────────────────────────
-    // Single endpoint lama — masih dipakai Dashboard.jsx (jangan hapus)
+    // DASHBOARD 
+    // Single endpoint lama — masih dikonsumsi Dashboard.jsx (jangan hapus)
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
     // Dedicated endpoint per role
@@ -51,7 +72,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/dashboard/guru',  [DashboardController::class, 'guru']);
     Route::get('/dashboard/admin', [DashboardController::class, 'admin']);
 
-    // ── PENGUMUMAN — read: semua role, write: admin only ──────────────────────
+    // PENGUMUMAN — read: semua role, write: admin only 
     Route::get('/pengumuman',              [PengumumanController::class, 'index'])->name('pengumuman.index');
     Route::get('/pengumuman/{pengumuman}', [PengumumanController::class, 'show'])->name('pengumuman.show');
 
@@ -61,7 +82,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/pengumuman/{pengumuman}', [PengumumanController::class, 'destroy'])->name('pengumuman.destroy');
     });
 
-    // ── TUGAS — read: semua role (difilter di controller), write: admin + guru ─
+    // TUGAS — read: semua role, write: admin + guru 
     Route::get('/tugas',         [TugasController::class, 'index'])->name('tugas.index');
     Route::get('/tugas/{tugas}', [TugasController::class, 'show'])->name('tugas.show');
 
@@ -71,14 +92,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/tugas/{tugas}', [TugasController::class, 'destroy'])->name('tugas.destroy');
     });
 
-    // ── ADMIN + GURU — jadwal, absensi, nilai ────────────────────────────────
+    // ADMIN + GURU — jadwal, absensi, nilai 
     Route::middleware(['role:admin,guru'])->group(function () {
         Route::apiResource('/jadwal',  JadwalController::class);
         Route::apiResource('/absensi', AbsensiController::class);
         Route::apiResource('/nilai',   NilaiController::class);
     });
 
-    // ── ADMIN ONLY — data master ──────────────────────────────────────────────
+    // ADMIN ONLY data master 
     Route::middleware(['role:admin'])->group(function () {
         Route::apiResource('/siswa',      SiswaController::class);
         Route::apiResource('/guru',       GuruController::class);

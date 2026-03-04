@@ -13,10 +13,10 @@ return new class extends Migration
             $table->foreignId('user_id')
                   ->constrained('users')
                   ->onDelete('cascade');
-            $table->string('action');                      // 'login', 'tambah_siswa', 'input_nilai', dll
-            $table->string('model_type')->nullable();      // 'Siswa', 'Nilai', 'Guru'
-            $table->unsignedBigInteger('model_id')->nullable(); // ID record yang diaksi
-            $table->text('description')->nullable();       // detail human-readable
+            $table->string('action');                      
+            $table->string('model_type')->nullable();      
+            $table->unsignedBigInteger('model_id')->nullable(); 
+            $table->text('description')->nullable();       
             $table->string('ip_address', 45)->nullable();
 
             // Hanya created_at, tidak perlu updated_at karena log tidak pernah diupdate

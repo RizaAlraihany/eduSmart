@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Create Admin User
+        // Create Admin User
         $admin = User::create([
             'name' => 'Administrator',
             'email' => 'admin@edusmart.com',
@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
-        // 2. Create Guru Users and Guru
+        // Create Guru Users and Guru
         $gurus = [
             ['nama' => 'Dra. Siti Nurhaliza', 'email' => 'siti.nurhaliza@edusmart.com', 'nip' => '197801012003122001'],
             ['nama' => 'Ahmad Fauzi, S.Pd', 'email' => 'ahmad.fauzi@edusmart.com', 'nip' => '198205102006041001'],
@@ -62,7 +62,7 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // 3. Create Mata Pelajaran
+        // Create Mata Pelajaran
         $mataPelajarans = [
             ['nama_mapel' => 'Matematika', 'kode_mapel' => 'MTK', 'kkm' => 75],
             ['nama_mapel' => 'Bahasa Indonesia', 'kode_mapel' => 'BID', 'kkm' => 75],
@@ -82,7 +82,7 @@ class DatabaseSeeder extends Seeder
             ]));
         }
 
-        // 4. Create Kelas
+        // Create Kelas
         $kelasList = [
             ['nama_kelas' => 'X IPA 1', 'tingkat' => 'X', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 30],
             ['nama_kelas' => 'X IPA 2', 'tingkat' => 'X', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 30],
@@ -98,7 +98,7 @@ class DatabaseSeeder extends Seeder
             ]));
         }
 
-        // 5. Create Siswa Users and Siswa
+        // Create Siswa Users and Siswa
         $siswaCount = 0;
         $siswaModels = [];
 
@@ -133,7 +133,7 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // 6. Create Jadwal
+        // Create Jadwal
         $jadwalModels = [];
         $hariList = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
 
@@ -162,7 +162,7 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // 7. Create Absensi (Kehadiran berdasarkan Jadwal)
+        // Create Absensi (Kehadiran berdasarkan Jadwal)
         foreach ($jadwalModels as $jadwal) {
             // Ambil array siswa untuk kelas pada jadwal ini
             $siswaKelasIni = array_filter($siswaModels, function ($s) use ($jadwal) {
@@ -182,7 +182,7 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // 8. Create Nilai (Tugas Harian, UTS, UAS)
+        // Create Nilai (Tugas Harian, UTS, UAS)
         foreach ($siswaModels as $siswa) {
             // Ambil 2 index mata pelajaran yang BERBEDA agar tidak terjadi constraint violation
             $randomMapelKeys = array_rand($mapelModels, 2);
@@ -232,7 +232,7 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // 9. Create Pembayaran
+        // Create Pembayaran
         foreach ($siswaModels as $siswa) {
             Pembayaran::create([
                 'siswa_id' => $siswa->id,
@@ -246,7 +246,7 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // 10. Create Pengumuman
+        // Create Pengumuman
         $pengumuman = [
             [
                 'judul' => 'Libur Semester Ganjil',

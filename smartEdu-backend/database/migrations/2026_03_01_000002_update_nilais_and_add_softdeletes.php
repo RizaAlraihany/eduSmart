@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // ── 1. Tambah tugas_id ke nilais (nullable agar tidak break data lama) ──
+        // Tambah tugas_id ke nilais (nullable agar tidak break data lama) ──
         Schema::table('nilais', function (Blueprint $table) {
             $table->foreignId('tugas_id')
                   ->nullable()
@@ -18,7 +18,7 @@ return new class extends Migration
                   ->onDelete('set null');
         });
 
-        // ── 2. Tambah PTS ke enum jenis_nilai ──
+        // Tambah PTS ke enum jenis_nilai ──
         // MySQL tidak support ALTER COLUMN ENUM secara langsung via Blueprint,
         // harus pakai raw statement
         DB::statement("
@@ -27,7 +27,7 @@ return new class extends Migration
             ENUM('tugas','pts','uts','uas','praktek','harian') NOT NULL
         ");
 
-        // ── 3. Tambah softDeletes ke semua tabel bisnis utama ──
+        // Tambah softDeletes ke semua tabel bisnis utama ──
         Schema::table('siswas', function (Blueprint $table) {
             $table->softDeletes();
         });

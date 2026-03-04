@@ -30,7 +30,7 @@ class Siswa extends Model
         'tanggal_lahir' => 'date',
     ];
 
-    // ─── Relasi ───────────────────────────────────────────────────────────────
+    // Relasi 
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -57,7 +57,7 @@ class Siswa extends Model
         return $this->hasMany(Pembayaran::class);
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────────────────
+    // Helpers 
 
     /**
      * Tugas aktif untuk kelas siswa ini yang belum lewat deadline.

@@ -22,14 +22,14 @@ class ActivityLog extends Model
         'created_at' => 'datetime',
     ];
 
-    // ─── Relasi ───────────────────────────────────────────────────────────────
+    // Relasi 
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // ─── Helper static untuk menulis log dengan mudah ─────────────────────────
+    
 
     /**
      * Catat aktivitas.

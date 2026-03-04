@@ -135,7 +135,7 @@ class AbsensiController extends Controller
     {
         $user = $request->user();
 
-        // ── Ownership check ───────────────────────────────────────────────────
+        // Ownership check 
         if ($user->isGuru()) {
             $guru = $user->guru;
 
@@ -179,7 +179,7 @@ class AbsensiController extends Controller
     {
         $user = $request->user();
 
-        // ── Ownership check ───────────────────────────────────────────────────
+        // Ownership check 
         if ($user->isGuru()) {
             $guru = $user->guru;
 

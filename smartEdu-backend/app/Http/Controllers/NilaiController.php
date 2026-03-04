@@ -11,15 +11,12 @@ class NilaiController extends Controller
 {
     /**
      * GET /api/nilai
-     * Admin: semua nilai.
-     * Guru: hanya nilai yang dia input (guru_id miliknya).
      */
     public function index(Request $request): JsonResponse
     {
         $user  = $request->user();
         $query = Nilai::with(['siswa', 'kelas', 'mataPelajaran', 'guru']);
 
-        // Guru hanya lihat nilai yang dia input
         if ($user->isGuru()) {
             $guru = $user->guru;
             abort_unless($guru, 403, 'Profil guru tidak ditemukan.');
@@ -47,50 +44,33 @@ class NilaiController extends Controller
 
         $nilais = $query->latest()->paginate($request->get('per_page', 15));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar Data Nilai',
-            'data'    => $nilais->items(),
-            'meta'    => [
-                'current_page' => $nilais->currentPage(),
-                'last_page'    => $nilais->lastPage(),
-                'per_page'     => $nilais->perPage(),
-                'total'        => $nilais->total(),
-            ],
-        ], 200);
+        return $this->paginatedResponse($nilais, 'Daftar Data Nilai');
     }
 
     /**
      * POST /api/nilai
-     * Guru input nilai — guru_id di-force dari profil guru yang login,
-     * bukan dari request body, mencegah guru menginput atas nama guru lain.
      */
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
 
         $request->validate([
-            'siswa_id'         => 'required|exists:siswas,id',
-            'kelas_id'         => 'required|exists:kelas,id',
-            'mata_pelajaran_id'=> 'required|exists:mata_pelajarans,id',
-            'jenis_nilai'      => 'required|in:tugas,uts,uas,praktek,harian',
-            'nilai'            => 'required|numeric|min:0|max:100',
-            'semester'         => 'required|in:1,2',
-            'tahun_ajaran'     => 'required|string|max:20',
-            'keterangan'       => 'nullable|string',
+            'siswa_id'          => 'required|exists:siswas,id',
+            'kelas_id'          => 'required|exists:kelas,id',
+            'mata_pelajaran_id' => 'required|exists:mata_pelajarans,id',
+            'jenis_nilai'       => 'required|in:tugas,uts,uas,praktek,harian',
+            'nilai'             => 'required|numeric|min:0|max:100',
+            'semester'          => 'required|in:1,2',
+            'tahun_ajaran'      => 'required|string|max:20',
+            'keterangan'        => 'nullable|string',
         ]);
 
-        // Tentukan guru_id: jika admin boleh override via request,
-        // jika guru → paksa dari profil sendiri
         if ($user->isGuru()) {
             $guru = $user->guru;
             abort_unless($guru, 403, 'Profil guru tidak ditemukan.');
             $guruId = $guru->id;
         } else {
-            // Admin boleh input atas nama guru manapun
-            $request->validate([
-                'guru_id' => 'required|exists:gurus,id',
-            ]);
+            $request->validate(['guru_id' => 'required|exists:gurus,id']);
             $guruId = $request->guru_id;
         }
 
@@ -114,11 +94,10 @@ class NilaiController extends Controller
             $request->ip()
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Nilai berhasil ditambahkan',
-            'data'    => $nilai->load(['siswa', 'kelas', 'mataPelajaran', 'guru']),
-        ], 201);
+        return $this->createdResponse(
+            $nilai->load(['siswa', 'kelas', 'mataPelajaran', 'guru']),
+            'Nilai berhasil ditambahkan'
+        );
     }
 
     /**
@@ -126,37 +105,25 @@ class NilaiController extends Controller
      */
     public function show(Nilai $nilai): JsonResponse
     {
-        $nilai->load(['siswa', 'kelas', 'mataPelajaran', 'guru']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Detail Data Nilai',
-            'data'    => $nilai,
-        ], 200);
+        return $this->successResponse(
+            $nilai->load(['siswa', 'kelas', 'mataPelajaran', 'guru']),
+            'Detail Data Nilai'
+        );
     }
 
     /**
      * PUT /api/nilai/{nilai}
-     *
-     * IDOR FIX: Guru hanya bisa update nilai yang guru_id-nya cocok dengan
-     * profil guru yang sedang login. Admin bypass semua pengecekan ini.
      */
     public function update(Request $request, Nilai $nilai): JsonResponse
     {
         $user = $request->user();
 
-        // ── Ownership check ───────────────────────────────────────────────────
         if ($user->isGuru()) {
             $guru = $user->guru;
-
             if (! $guru || $nilai->guru_id !== $guru->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Forbidden. Anda tidak memiliki akses untuk mengubah nilai ini.',
-                ], 403);
+                return $this->forbiddenResponse('Anda tidak memiliki akses untuk mengubah nilai ini.');
             }
         }
-        // Admin: tidak ada pengecekan ownership, boleh update semua
 
         $request->validate([
             'jenis_nilai' => 'required|in:tugas,uts,uas,praktek,harian',
@@ -174,31 +141,23 @@ class NilaiController extends Controller
             $request->ip()
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Nilai berhasil diperbarui',
-            'data'    => $nilai->load(['siswa', 'kelas', 'mataPelajaran', 'guru']),
-        ], 200);
+        return $this->successResponse(
+            $nilai->load(['siswa', 'kelas', 'mataPelajaran', 'guru']),
+            'Nilai berhasil diperbarui'
+        );
     }
 
     /**
      * DELETE /api/nilai/{nilai}
-     *
-     * IDOR FIX: Guru hanya bisa hapus nilai miliknya sendiri.
      */
     public function destroy(Request $request, Nilai $nilai): JsonResponse
     {
         $user = $request->user();
 
-        // ── Ownership check ───────────────────────────────────────────────────
         if ($user->isGuru()) {
             $guru = $user->guru;
-
             if (! $guru || $nilai->guru_id !== $guru->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Forbidden. Anda tidak memiliki akses untuk menghapus nilai ini.',
-                ], 403);
+                return $this->forbiddenResponse('Anda tidak memiliki akses untuk menghapus nilai ini.');
             }
         }
 
@@ -212,9 +171,6 @@ class NilaiController extends Controller
 
         $nilai->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Nilai berhasil dihapus',
-        ], 200);
+        return $this->successResponse(null, 'Nilai berhasil dihapus');
     }
 }

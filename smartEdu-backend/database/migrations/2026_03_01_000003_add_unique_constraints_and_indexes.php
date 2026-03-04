@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // ── 1. Unique constraint absensis ──
+        // Unique constraint absensis ──
         // Satu siswa tidak bisa absen dua kali untuk jadwal + tanggal yang sama
         Schema::table('absensis', function (Blueprint $table) {
             $table->unique(
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->index(['kelas_id', 'tanggal'], 'absensi_kelas_tanggal_idx');
         });
 
-        // ── 2. Unique constraint nilais ──
+        // Unique constraint nilais ──
         // Satu siswa tidak bisa punya dua nilai untuk jenis + mapel + semester + tahun ajaran
         Schema::table('nilais', function (Blueprint $table) {
             $table->unique(
@@ -33,7 +33,7 @@ return new class extends Migration
             $table->index(['siswa_id', 'semester', 'tahun_ajaran'], 'nilai_siswa_semester_idx');
         });
 
-        // ── 3. Unique constraint jadwals ──
+        // Unique constraint jadwals ──
         // Satu kelas tidak boleh punya dua jadwal di waktu yang sama
         // Satu guru tidak boleh mengajar dua kelas di waktu yang sama
         Schema::table('jadwals', function (Blueprint $table) {

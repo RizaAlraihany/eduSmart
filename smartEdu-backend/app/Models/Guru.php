@@ -27,8 +27,9 @@ class Guru extends Model
         'tanggal_lahir' => 'date',
     ];
 
-    // ─── Relasi ───────────────────────────────────────────────────────────────
-
+     
+    // RELASI
+    
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -59,18 +60,34 @@ class Guru extends Model
         return $this->hasMany(Tugas::class);
     }
 
-    // ─── Kelas yang diajar (via jadwal, distinct) ─────────────────────────────
-    public function kelasYangDiajar(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
-    {
-        // Tidak pakai hasManyThrough karena ada kelas duplikat per hari.
-        // Gunakan query scope di controller.
-        return $this->hasMany(Jadwal::class);
-    }
-
-    // ─── Helpers ──────────────────────────────────────────────────────────────
+    // SCOPES
 
     /**
-     * Jumlah kelas unik yang diajar semester ini.
+     * Filter guru yang berstatus aktif.
+     * Usage: Guru::aktif()->get()
+     */
+    public function scopeAktif($query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('status', 'aktif');
+    }
+
+    /**
+     * Filter tugas milik guru ini yang belum ada nilai sama sekali.
+     * Dipakai via relasi: $guru->tugass()->belumDinilai()->get()
+     *
+     * Catatan: logic semester-aware & perhitungan per-siswa ada di GuruService.
+     * Scope ini hanya untuk filter sederhana tanpa konteks semester.
+     */
+    public function scopeBelumDinilai($query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('status', 'aktif')
+            ->whereDoesntHave('nilais');
+    }
+
+    // HELPERS
+
+    /**
+     * Jumlah kelas unik yang diajar pada semester & tahun ajaran tertentu.
      */
     public function totalKelasAktif(string $semester, string $tahunAjaran): int
     {
@@ -82,16 +99,4 @@ class Guru extends Model
             ->count('kelas_id');
     }
 
-    /**
-     * Tugas yang belum ada nilai masuk sama sekali.
-     */
-    public function tugasBelumDinilai()
-    {
-        return $this->tugass()
-            ->where('status', 'aktif')
-            ->whereDoesntHave('nilais')
-            ->with(['kelas', 'mataPelajaran'])
-            ->orderBy('tanggal_deadline')
-            ->get();
-    }
 }

@@ -11,33 +11,24 @@ class PembayaranController extends Controller
 {
     /**
      * GET /api/pembayaran
-     * Admin: bisa filter by siswa_id.
-     * Siswa: hanya melihat pembayaran miliknya sendiri.
      */
     public function index(Request $request): JsonResponse
     {
         $query = Pembayaran::with('siswa.kelas');
-
-        $user = $request->user();
+        $user  = $request->user();
 
         if ($user->isSiswa()) {
-            // Siswa hanya lihat pembayaran miliknya
-            $query->whereHas('siswa', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            });
+            $query->whereHas('siswa', fn($q) => $q->where('user_id', $user->id));
         } elseif ($request->filled('siswa_id')) {
-            // Admin boleh filter by siswa_id
             $query->where('siswa_id', $request->siswa_id);
         }
 
         if ($request->filled('status_pembayaran')) {
             $query->where('status_pembayaran', $request->status_pembayaran);
         }
-
         if ($request->filled('jenis_pembayaran')) {
             $query->where('jenis_pembayaran', $request->jenis_pembayaran);
         }
-
         if ($request->filled('bulan') && $request->filled('tahun')) {
             $query->whereMonth('tanggal_jatuh_tempo', $request->bulan)
                 ->whereYear('tanggal_jatuh_tempo', $request->tahun);
@@ -45,17 +36,7 @@ class PembayaranController extends Controller
 
         $pembayarans = $query->latest()->paginate($request->get('per_page', 15));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar Data Pembayaran',
-            'data'    => $pembayarans->items(),
-            'meta'    => [
-                'current_page' => $pembayarans->currentPage(),
-                'last_page'    => $pembayarans->lastPage(),
-                'per_page'     => $pembayarans->perPage(),
-                'total'        => $pembayarans->total(),
-            ],
-        ], 200);
+        return $this->paginatedResponse($pembayarans, 'Daftar Data Pembayaran');
     }
 
     /**
@@ -82,23 +63,15 @@ class PembayaranController extends Controller
                 'status_pembayaran'   => $request->status_pembayaran,
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Pembayaran berhasil ditambahkan',
-                'data'    => $pembayaran->load('siswa.kelas'),
-            ], 201);
+            return $this->createdResponse($pembayaran->load('siswa.kelas'), 'Pembayaran berhasil ditambahkan');
         } catch (\Throwable $e) {
-            Log::error('[PembayaranController@store] Gagal menyimpan data pembayaran', [
+            Log::error('[PembayaranController@store]', [
                 'error'   => $e->getMessage(),
-                'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
                 'request' => $request->all(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 
@@ -107,24 +80,19 @@ class PembayaranController extends Controller
      */
     public function show(Pembayaran $pembayaran): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'Detail Data Pembayaran',
-            'data'    => $pembayaran->load('siswa.kelas'),
-        ], 200);
+        return $this->successResponse($pembayaran->load('siswa.kelas'), 'Detail Data Pembayaran');
     }
 
     /**
      * PUT /api/pembayaran/{pembayaran}
-     * Update status & detail pembayaran.
      */
     public function update(Request $request, Pembayaran $pembayaran): JsonResponse
     {
         $request->validate([
-            'status_pembayaran'   => 'required|in:belum_bayar,sudah_bayar,terlambat',
-            'tanggal_pembayaran'  => 'nullable|date',
-            'metode_pembayaran'   => 'nullable|in:tunai,transfer,debit,kredit',
-            'keterangan'          => 'nullable|string',
+            'status_pembayaran'  => 'required|in:belum_bayar,sudah_bayar,terlambat',
+            'tanggal_pembayaran' => 'nullable|date',
+            'metode_pembayaran'  => 'nullable|in:tunai,transfer,debit,kredit',
+            'keterangan'         => 'nullable|string',
         ]);
 
         try {
@@ -135,23 +103,15 @@ class PembayaranController extends Controller
                 'keterangan',
             ]));
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Pembayaran berhasil diperbarui',
-                'data'    => $pembayaran->load('siswa.kelas'),
-            ], 200);
+            return $this->successResponse($pembayaran->load('siswa.kelas'), 'Pembayaran berhasil diperbarui');
         } catch (\Throwable $e) {
-            Log::error('[PembayaranController@update] Gagal memperbarui data pembayaran', [
+            Log::error('[PembayaranController@update]', [
                 'pembayaran_id' => $pembayaran->id,
                 'error'         => $e->getMessage(),
-                'file'          => $e->getFile(),
                 'line'          => $e->getLine(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 
@@ -163,22 +123,15 @@ class PembayaranController extends Controller
         try {
             $pembayaran->delete();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Pembayaran berhasil dihapus',
-            ], 200);
+            return $this->successResponse(null, 'Pembayaran berhasil dihapus');
         } catch (\Throwable $e) {
-            Log::error('[PembayaranController@destroy] Gagal menghapus data pembayaran', [
+            Log::error('[PembayaranController@destroy]', [
                 'pembayaran_id' => $pembayaran->id,
                 'error'         => $e->getMessage(),
-                'file'          => $e->getFile(),
                 'line'          => $e->getLine(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 }

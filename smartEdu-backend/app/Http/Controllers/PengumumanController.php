@@ -4,125 +4,102 @@ namespace App\Http\Controllers;
 
 use App\Models\Pengumuman;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class PengumumanController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * GET /api/pengumuman
+     */
+    public function index(Request $request): JsonResponse
     {
         $query = Pengumuman::with('pembuatPengumuman');
 
-        // Filter by status
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
-
-        // Filter by tipe
         if ($request->has('tipe')) {
             $query->where('tipe', $request->tipe);
         }
-
-        // Filter aktif (between tanggal_mulai and tanggal_selesai)
         if ($request->has('aktif') && $request->aktif) {
             $query->where('status', 'aktif')
                 ->where('tanggal_mulai', '<=', now())
                 ->where('tanggal_selesai', '>=', now());
         }
 
-        $pengumumen = $query->latest()->paginate($request->get('per_page', 15));
+        $pengumuman = $query->latest()->paginate($request->get('per_page', 15));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar Pengumuman',
-            'data' => $pengumumen->items(),
-            'meta' => [
-                'current_page' => $pengumumen->currentPage(),
-                'last_page' => $pengumumen->lastPage(),
-                'per_page' => $pengumumen->perPage(),
-                'total' => $pengumumen->total(),
-            ]
-        ], 200);
+        return $this->paginatedResponse($pengumuman, 'Daftar Pengumuman');
     }
 
-    public function store(Request $request)
+    /**
+     * POST /api/pengumuman
+     */
+    public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'judul' => 'required|string|max:255',
-            'isi' => 'required|string',
-            'tipe' => 'required|in:penting,biasa,urgent',
+            'judul'           => 'required|string|max:255',
+            'isi'             => 'required|string',
+            'tipe'            => 'required|in:penting,biasa,urgent',
             'target_audience' => 'required|in:semua,guru,siswa,kelas_tertentu',
-            'tanggal_mulai' => 'required|date',
+            'tanggal_mulai'   => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'status' => 'required|in:draft,aktif,nonaktif',
+            'status'          => 'required|in:draft,aktif,nonaktif',
         ]);
 
-        // Secara otomatis menyimpan ID pembuat berdasarkan user login
-        $data = $request->all();
+        $data               = $request->all();
         $data['dibuat_oleh'] = $request->user()->id;
 
         $pengumuman = Pengumuman::create($data);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pengumuman berhasil ditambahkan',
-            'data' => $pengumuman
-        ], 201);
+        return $this->createdResponse($pengumuman, 'Pengumuman berhasil ditambahkan');
     }
 
-    public function show(Pengumuman $pengumuman)
+    /**
+     * GET /api/pengumuman/{pengumuman}
+     */
+    public function show(Pengumuman $pengumuman): JsonResponse
     {
         $pengumuman->load('pembuatPengumuman');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Detail Pengumuman',
-            'data' => $pengumuman
-        ], 200);
+        return $this->successResponse($pengumuman, 'Detail Pengumuman');
     }
 
-    public function update(Request $request, Pengumuman $pengumuman)
+    /**
+     * PUT /api/pengumuman/{pengumuman}
+     */
+    public function update(Request $request, Pengumuman $pengumuman): JsonResponse
     {
-        // Check authorization
-        if (!$request->user()->isAdmin() && $pengumuman->dibuat_oleh !== $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda tidak memiliki akses untuk mengubah pengumuman ini'
-            ], 403);
+        if (! $request->user()->isAdmin() && $pengumuman->dibuat_oleh !== $request->user()->id) {
+            return $this->forbiddenResponse('Anda tidak memiliki akses untuk mengubah pengumuman ini.');
         }
 
         $request->validate([
-            'judul' => 'required|string|max:255',
-            'isi' => 'required|string',
-            'tipe' => 'required|in:penting,biasa,urgent',
-            'target_audience' => 'required|in:semua,guru,siswa,kelas_tertentu',
-            'tanggal_mulai' => 'required|date',
-            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'status' => 'required|in:draft,aktif,nonaktif',
+            'judul'           => 'sometimes|string|max:255',
+            'isi'             => 'sometimes|string',
+            'tipe'            => 'sometimes|in:penting,biasa,urgent',
+            'target_audience' => 'sometimes|in:semua,guru,siswa,kelas_tertentu',
+            'tanggal_mulai'   => 'sometimes|date',
+            'tanggal_selesai' => 'sometimes|date|after_or_equal:tanggal_mulai',
+            'status'          => 'sometimes|in:draft,aktif,nonaktif',
         ]);
 
         $pengumuman->update($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pengumuman berhasil diperbarui',
-            'data' => $pengumuman
-        ], 200);
+        return $this->successResponse($pengumuman, 'Pengumuman berhasil diperbarui');
     }
 
-    public function destroy(Request $request, Pengumuman $pengumuman)
+    /**
+     * DELETE /api/pengumuman/{pengumuman}
+     */
+    public function destroy(Request $request, Pengumuman $pengumuman): JsonResponse
     {
-        // Check authorization
-        if (!$request->user()->isAdmin() && $pengumuman->dibuat_oleh !== $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda tidak memiliki akses untuk menghapus pengumuman ini'
-            ], 403);
+        if (! $request->user()->isAdmin() && $pengumuman->dibuat_oleh !== $request->user()->id) {
+            return $this->forbiddenResponse('Anda tidak memiliki akses untuk menghapus pengumuman ini.');
         }
 
         $pengumuman->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pengumuman berhasil dihapus'
-        ], 200);
+        return $this->successResponse(null, 'Pengumuman berhasil dihapus');
     }
 }

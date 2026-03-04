@@ -20,7 +20,6 @@ class MataPelajaranController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -31,17 +30,7 @@ class MataPelajaranController extends Controller
 
         $mapelList = $query->latest()->paginate($request->get('per_page', 15));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar Mata Pelajaran',
-            'data'    => $mapelList->items(),
-            'meta'    => [
-                'current_page' => $mapelList->currentPage(),
-                'last_page'    => $mapelList->lastPage(),
-                'per_page'     => $mapelList->perPage(),
-                'total'        => $mapelList->total(),
-            ],
-        ], 200);
+        return $this->paginatedResponse($mapelList, 'Daftar Mata Pelajaran');
     }
 
     /**
@@ -66,23 +55,15 @@ class MataPelajaranController extends Controller
                 'status'     => $request->status,
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Mata pelajaran berhasil ditambahkan',
-                'data'    => $mataPelajaran,
-            ], 201);
+            return $this->createdResponse($mataPelajaran, 'Mata pelajaran berhasil ditambahkan');
         } catch (\Throwable $e) {
-            Log::error('[MataPelajaranController@store] Gagal menyimpan mata pelajaran', [
+            Log::error('[MataPelajaranController@store]', [
                 'error'   => $e->getMessage(),
-                'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
                 'request' => $request->all(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 
@@ -91,15 +72,10 @@ class MataPelajaranController extends Controller
      */
     public function show(MataPelajaran $mataPelajaran): JsonResponse
     {
-        return response()->json([
-            'success'    => true,
-            'message'    => 'Detail Mata Pelajaran',
-            'data'       => $mataPelajaran,
-            'statistics' => [
-                'total_guru'   => $mataPelajaran->gurus()->count(),
-                'total_jadwal' => $mataPelajaran->jadwals()->count(),
-            ],
-        ], 200);
+        return $this->successResponse($mataPelajaran, 'Detail Mata Pelajaran', 200, [
+            'total_guru'   => $mataPelajaran->gurus()->count(),
+            'total_jadwal' => $mataPelajaran->jadwals()->count(),
+        ]);
     }
 
     /**
@@ -124,23 +100,15 @@ class MataPelajaranController extends Controller
                 'status'     => $request->status,
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Mata pelajaran berhasil diperbarui',
-                'data'    => $mataPelajaran,
-            ], 200);
+            return $this->successResponse($mataPelajaran, 'Mata pelajaran berhasil diperbarui');
         } catch (\Throwable $e) {
-            Log::error('[MataPelajaranController@update] Gagal memperbarui mata pelajaran', [
+            Log::error('[MataPelajaranController@update]', [
                 'mapel_id' => $mataPelajaran->id,
                 'error'    => $e->getMessage(),
-                'file'     => $e->getFile(),
                 'line'     => $e->getLine(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 
@@ -150,33 +118,24 @@ class MataPelajaranController extends Controller
      */
     public function destroy(MataPelajaran $mataPelajaran): JsonResponse
     {
-        // ── Business rule guard — bukan exception, return 422 ─────────────────
         if ($mataPelajaran->jadwals()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tidak dapat menghapus mata pelajaran yang masih memiliki jadwal.',
-            ], 422);
+            return $this->unprocessableResponse(
+                'Tidak dapat menghapus mata pelajaran yang masih memiliki jadwal.'
+            );
         }
 
         try {
             $mataPelajaran->delete();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Mata pelajaran berhasil dihapus',
-            ], 200);
+            return $this->successResponse(null, 'Mata pelajaran berhasil dihapus');
         } catch (\Throwable $e) {
-            Log::error('[MataPelajaranController@destroy] Gagal menghapus mata pelajaran', [
+            Log::error('[MataPelajaranController@destroy]', [
                 'mapel_id' => $mataPelajaran->id,
                 'error'    => $e->getMessage(),
-                'file'     => $e->getFile(),
                 'line'     => $e->getLine(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 }

@@ -24,7 +24,7 @@ class Absensi extends Model
         'tanggal' => 'date',
     ];
 
-    // ─── Relasi ───────────────────────────────────────────────────────────────
+    // Relasi 
 
     public function siswa(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

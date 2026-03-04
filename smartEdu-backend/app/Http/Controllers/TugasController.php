@@ -11,9 +11,6 @@ class TugasController extends Controller
 {
     /**
      * GET /api/tugas
-     * Admin: semua tugas.
-     * Guru: hanya tugas miliknya.
-     * Siswa: tugas untuk kelasnya.
      */
     public function index(Request $request): JsonResponse
     {
@@ -29,9 +26,7 @@ class TugasController extends Controller
             abort_unless($siswa && $siswa->kelas_id, 403, 'Profil siswa / kelas tidak ditemukan.');
             $query->where('kelas_id', $siswa->kelas_id);
         }
-        // admin: tidak ada filter tambahan → lihat semua
 
-        // Filter opsional
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -50,59 +45,62 @@ class TugasController extends Controller
 
         $tugas = $query->orderBy('tanggal_deadline')->paginate($request->get('per_page', 15));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar tugas berhasil diambil',
-            'data'    => $tugas->items(),
-            'meta'    => [
-                'current_page' => $tugas->currentPage(),
-                'last_page'    => $tugas->lastPage(),
-                'per_page'     => $tugas->perPage(),
-                'total'        => $tugas->total(),
-            ],
-        ], 200);
+        return $this->paginatedResponse($tugas, 'Daftar tugas berhasil diambil');
     }
 
     /**
      * POST /api/tugas
-     * Hanya admin dan guru.
      */
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        $validated = $request->validate([
-            'kelas_id'          => ['required', 'exists:kelas,id'],
-            'mata_pelajaran_id' => ['required', 'exists:mata_pelajarans,id'],
-            'judul'             => ['required', 'string', 'max:255'],
-            'deskripsi'         => ['nullable', 'string'],
-            'tanggal_diberikan' => ['required', 'date'],
-            'tanggal_deadline'  => ['required', 'date', 'after_or_equal:tanggal_diberikan'],
-            'semester'          => ['required', 'in:1,2'],
-            'tahun_ajaran'      => ['required', 'string'],
-            'status'            => ['sometimes', 'in:aktif,selesai'],
+        $request->validate([
+            'kelas_id'          => 'required|exists:kelas,id',
+            'mata_pelajaran_id' => 'required|exists:mata_pelajarans,id',
+            'judul'             => 'required|string|max:255',
+            'deskripsi'         => 'nullable|string',
+            'tanggal_diberikan' => 'required|date',
+            'tanggal_deadline'  => 'required|date|after_or_equal:tanggal_diberikan',
+            'semester'          => 'required|in:1,2',
+            'tahun_ajaran'      => 'required|string',
+            'status'            => 'required|in:aktif,selesai',
         ]);
 
-        // Guru yang membuat tugas, guru_id otomatis dari profil guru
-        $guruId = $user->isGuru()
-            ? $user->guru->id
-            : $request->validate(['guru_id' => 'required|exists:gurus,id'])['guru_id'];
+        if ($user->isGuru()) {
+            $guru = $user->guru;
+            abort_unless($guru, 403, 'Profil guru tidak ditemukan.');
+            $guruId = $guru->id;
+        } else {
+            $request->validate(['guru_id' => 'required|exists:gurus,id']);
+            $guruId = $request->guru_id;
+        }
 
-        $tugas = Tugas::create(array_merge($validated, ['guru_id' => $guruId]));
+        $tugas = Tugas::create([
+            'guru_id'           => $guruId,
+            'kelas_id'          => $request->kelas_id,
+            'mata_pelajaran_id' => $request->mata_pelajaran_id,
+            'judul'             => $request->judul,
+            'deskripsi'         => $request->deskripsi,
+            'tanggal_diberikan' => $request->tanggal_diberikan,
+            'tanggal_deadline'  => $request->tanggal_deadline,
+            'semester'          => $request->semester,
+            'tahun_ajaran'      => $request->tahun_ajaran,
+            'status'            => $request->status,
+        ]);
 
         ActivityLog::catat(
             $user,
-            'tambah_tugas',
+            'create_tugas',
             $tugas,
-            "Menambahkan tugas: {$tugas->judul}",
+            "Membuat tugas: {$tugas->judul}",
             $request->ip()
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tugas berhasil ditambahkan',
-            'data'    => $tugas->load(['guru', 'kelas', 'mataPelajaran']),
-        ], 201);
+        return $this->createdResponse(
+            $tugas->load(['guru', 'kelas', 'mataPelajaran']),
+            'Tugas berhasil ditambahkan'
+        );
     }
 
     /**
@@ -110,26 +108,21 @@ class TugasController extends Controller
      */
     public function show(Tugas $tugas): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'data'    => $tugas->load(['guru', 'kelas', 'mataPelajaran', 'nilais']),
-        ], 200);
+        return $this->successResponse(
+            $tugas->load(['guru', 'kelas', 'mataPelajaran']),
+            'Detail Tugas'
+        );
     }
 
     /**
      * PUT /api/tugas/{tugas}
-     * Admin atau guru pemilik tugas.
      */
     public function update(Request $request, Tugas $tugas): JsonResponse
     {
         $user = $request->user();
 
-        // Guru hanya bisa update tugas miliknya
         if ($user->isGuru() && $tugas->guru_id !== $user->guru?->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda tidak memiliki akses untuk mengubah tugas ini.',
-            ], 403);
+            return $this->forbiddenResponse('Anda tidak memiliki akses untuk mengubah tugas ini.');
         }
 
         $validated = $request->validate([
@@ -146,49 +139,29 @@ class TugasController extends Controller
 
         $tugas->update($validated);
 
-        ActivityLog::catat(
-            $user,
-            'update_tugas',
-            $tugas,
-            "Mengubah tugas: {$tugas->judul}",
-            $request->ip()
-        );
+        ActivityLog::catat($user, 'update_tugas', $tugas, "Mengubah tugas: {$tugas->judul}", $request->ip());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tugas berhasil diperbarui',
-            'data'    => $tugas->load(['guru', 'kelas', 'mataPelajaran']),
-        ], 200);
+        return $this->successResponse(
+            $tugas->load(['guru', 'kelas', 'mataPelajaran']),
+            'Tugas berhasil diperbarui'
+        );
     }
 
     /**
      * DELETE /api/tugas/{tugas}
-     * Admin atau guru pemilik.
      */
     public function destroy(Request $request, Tugas $tugas): JsonResponse
     {
         $user = $request->user();
 
         if ($user->isGuru() && $tugas->guru_id !== $user->guru?->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda tidak memiliki akses untuk menghapus tugas ini.',
-            ], 403);
+            return $this->forbiddenResponse('Anda tidak memiliki akses untuk menghapus tugas ini.');
         }
 
-        ActivityLog::catat(
-            $user,
-            'hapus_tugas',
-            $tugas,
-            "Menghapus tugas: {$tugas->judul}",
-            $request->ip()
-        );
+        ActivityLog::catat($user, 'hapus_tugas', $tugas, "Menghapus tugas: {$tugas->judul}", $request->ip());
 
-        $tugas->delete(); // SoftDelete
+        $tugas->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tugas berhasil dihapus',
-        ], 200);
+        return $this->successResponse(null, 'Tugas berhasil dihapus');
     }
 }

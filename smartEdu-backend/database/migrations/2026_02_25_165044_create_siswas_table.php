@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('kelas_id')->nullable()->constrained('kelas')->onDelete('set null');
-            $table->string('nik', 16)->unique();        // ← DITAMBAHKAN: identitas unik KTP/KIA
+            $table->string('nik', 16)->unique();        
             $table->string('nisn')->unique();
             $table->string('nama');
             $table->string('email')->unique();

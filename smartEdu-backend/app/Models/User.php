@@ -31,7 +31,7 @@ class User extends Authenticatable
         ];
     }
 
-    // ─── Role helpers ─────────────────────────────────────────────────────────
+    // Role helpers 
 
     public function isAdmin(): bool
     {
@@ -48,7 +48,7 @@ class User extends Authenticatable
         return $this->role === 'siswa';
     }
 
-    // ─── Relasi profil ────────────────────────────────────────────────────────
+    // Relasi profil 
 
     public function guru(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
@@ -60,7 +60,7 @@ class User extends Authenticatable
         return $this->hasOne(Siswa::class);
     }
 
-    // ─── Relasi log ───────────────────────────────────────────────────────────
+    // Relasi log 
 
     public function activityLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {

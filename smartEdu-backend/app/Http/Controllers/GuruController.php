@@ -4,18 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Guru;
 use App\Models\User;
+use App\Http\Requests\StoreGuruRequest;
+use App\Http\Requests\UpdateGuruRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rule;
 
 class GuruController extends Controller
 {
     /**
      * GET /api/guru
-     * Daftar semua guru dengan filter & search.
      */
     public function index(Request $request): JsonResponse
     {
@@ -41,88 +41,58 @@ class GuruController extends Controller
 
         $gurus = $query->latest()->paginate($request->get('per_page', 15));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar Data Guru',
-            'data'    => $gurus->items(),
-            'meta'    => [
-                'current_page' => $gurus->currentPage(),
-                'last_page'    => $gurus->lastPage(),
-                'per_page'     => $gurus->perPage(),
-                'total'        => $gurus->total(),
-            ],
+        return $this->paginatedResponse($gurus, 'Daftar Data Guru', [
             'statistics' => [
                 'total_guru'     => Guru::count(),
                 'guru_aktif'     => Guru::where('status', 'aktif')->count(),
                 'guru_laki'      => Guru::where('jenis_kelamin', 'L')->count(),
                 'guru_perempuan' => Guru::where('jenis_kelamin', 'P')->count(),
             ],
-        ], 200);
+        ]);
     }
 
     /**
      * POST /api/guru
-     * Buat akun User + profil Guru dalam satu transaksi.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreGuruRequest $request): JsonResponse
     {
-        $request->validate([
-            'nama'                => 'required|string|max:255',
-            'email'               => 'required|email|unique:users,email',
-            'nip'                 => 'required|string|unique:gurus,nip',
-            'jenis_kelamin'       => 'required|in:L,P',
-            'tanggal_lahir'       => 'nullable|date',
-            'telepon'             => 'nullable|string|max:20',
-            'alamat'              => 'nullable|string',
-            'pendidikan_terakhir' => 'nullable|string|max:10',
-            'status'              => 'nullable|in:aktif,nonaktif',
-            'password'            => 'required|string|min:8',
-        ]);
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
             $user = User::create([
-                'name'              => $request->nama,
-                'email'             => $request->email,
-                'password'          => Hash::make($request->password),
+                'name'              => $validated['nama'],
+                'email'             => $validated['email'],
+                'password'          => Hash::make($validated['password']),
                 'role'              => 'guru',
                 'email_verified_at' => now(),
             ]);
 
             $guru = Guru::create([
                 'user_id'             => $user->id,
-                'nip'                 => $request->nip,
-                'nama'                => $request->nama,
-                'email'               => $request->email,
-                'jenis_kelamin'       => $request->jenis_kelamin,
-                'tanggal_lahir'       => $request->tanggal_lahir,
-                'telepon'             => $request->telepon,
-                'alamat'              => $request->alamat,
-                'pendidikan_terakhir' => $request->pendidikan_terakhir,
-                'status'              => $request->status ?? 'aktif',
+                'nip'                 => $validated['nip'],
+                'nama'                => $validated['nama'],
+                'email'               => $validated['email'],
+                'jenis_kelamin'       => $validated['jenis_kelamin'],
+                'tanggal_lahir'       => $validated['tanggal_lahir'] ?? null,
+                'telepon'             => $validated['telepon'] ?? null,
+                'alamat'              => $validated['alamat'] ?? null,
+                'pendidikan_terakhir' => $validated['pendidikan_terakhir'] ?? null,
+                'status'              => $validated['status'] ?? 'aktif',
             ]);
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Data guru berhasil ditambahkan',
-                'data'    => $guru->load('user'),
-            ], 201);
+            return $this->createdResponse($guru->load('user'), 'Data guru berhasil ditambahkan');
         } catch (\Throwable $e) {
             DB::rollBack();
-
-            Log::error('[GuruController@store] Gagal menyimpan data guru', [
+            Log::error('[GuruController@store]', [
                 'error'   => $e->getMessage(),
-                'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
                 'request' => $request->except(['password']),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 
@@ -139,87 +109,60 @@ class GuruController extends Controller
             'jadwals.mataPelajaran:id,nama_mapel',
         ]);
 
-        // ── Hitung statistik dari collection in-memory (tanpa query baru) ─────
         $totalJadwal = $guru->jadwals->count();
         $totalMapel  = $guru->mataPelajarans->count();
-
-        // distinct kelas_id dari collection — tidak perlu distinct() DB query
         $totalKelas  = $guru->jadwals->pluck('kelas_id')->unique()->count();
 
-        return response()->json([
-            'success'    => true,
-            'message'    => 'Detail Data Guru',
-            'data'       => $guru,
-            'statistics' => [
-                'total_jadwal' => $totalJadwal,
-                'total_mapel'  => $totalMapel,
-                'total_kelas'  => $totalKelas,
-            ],
-        ], 200);
+        return $this->successResponse($guru, 'Detail Data Guru', 200, [
+            'total_jadwal' => $totalJadwal,
+            'total_mapel'  => $totalMapel,
+            'total_kelas'  => $totalKelas,
+        ]);
     }
+
     /**
      * PUT /api/guru/{guru}
      */
-    public function update(Request $request, Guru $guru): JsonResponse
+    public function update(UpdateGuruRequest $request, Guru $guru): JsonResponse
     {
-        $request->validate([
-            'nama'                => 'required|string|max:255',
-            'email'               => ['required', 'email', Rule::unique('users', 'email')->ignore($guru->user_id)],
-            'nip'                 => ['required', 'string', Rule::unique('gurus', 'nip')->ignore($guru->id)],
-            'jenis_kelamin'       => 'required|in:L,P',
-            'tanggal_lahir'       => 'nullable|date',
-            'telepon'             => 'nullable|string|max:20',
-            'alamat'              => 'nullable|string',
-            'pendidikan_terakhir' => 'nullable|string|max:10',
-            'status'              => 'required|in:aktif,nonaktif',
-        ]);
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
             $guru->user->update([
-                'name'  => $request->nama,
-                'email' => $request->email,
+                'name'  => $validated['nama'],
+                'email' => $validated['email'],
             ]);
 
             $guru->update([
-                'nip'                 => $request->nip,
-                'nama'                => $request->nama,
-                'email'               => $request->email,
-                'jenis_kelamin'       => $request->jenis_kelamin,
-                'tanggal_lahir'       => $request->tanggal_lahir,
-                'telepon'             => $request->telepon,
-                'alamat'              => $request->alamat,
-                'pendidikan_terakhir' => $request->pendidikan_terakhir,
-                'status'              => $request->status,
+                'nip'                 => $validated['nip'],
+                'nama'                => $validated['nama'],
+                'email'               => $validated['email'],
+                'jenis_kelamin'       => $validated['jenis_kelamin'],
+                'tanggal_lahir'       => $validated['tanggal_lahir'] ?? null,
+                'telepon'             => $validated['telepon'] ?? null,
+                'alamat'              => $validated['alamat'] ?? null,
+                'pendidikan_terakhir' => $validated['pendidikan_terakhir'] ?? null,
+                'status'              => $validated['status'],
             ]);
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Data guru berhasil diperbarui',
-                'data'    => $guru->load('user'),
-            ], 200);
+            return $this->successResponse($guru->load('user'), 'Data guru berhasil diperbarui');
         } catch (\Throwable $e) {
             DB::rollBack();
-
-            Log::error('[GuruController@update] Gagal memperbarui data guru', [
+            Log::error('[GuruController@update]', [
                 'guru_id' => $guru->id,
                 'error'   => $e->getMessage(),
-                'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 
     /**
      * DELETE /api/guru/{guru}
-     * Hapus guru beserta user account-nya.
      */
     public function destroy(Guru $guru): JsonResponse
     {
@@ -234,24 +177,16 @@ class GuruController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Data guru berhasil dihapus',
-            ], 200);
+            return $this->successResponse(null, 'Data guru berhasil dihapus');
         } catch (\Throwable $e) {
             DB::rollBack();
-
-            Log::error('[GuruController@destroy] Gagal menghapus data guru', [
+            Log::error('[GuruController@destroy]', [
                 'guru_id' => $guru->id,
                 'error'   => $e->getMessage(),
-                'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi.',
-            ], 500);
+            return $this->serverErrorResponse();
         }
     }
 }

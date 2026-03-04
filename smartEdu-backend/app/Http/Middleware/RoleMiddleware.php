@@ -26,7 +26,7 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        // ── Guard 1: Autentikasi ──────────────────────────────────────────────
+        //  Autentikasi 
         // Gunakan $request->user() bukan auth()->check()
         // karena Sanctum SPA binding ke request object, bukan global auth()
         $user = $request->user();
@@ -38,7 +38,7 @@ class RoleMiddleware
             ], 401);
         }
 
-        // ── Guard 2: Otorisasi Role ───────────────────────────────────────────
+        // Otorisasi Role 
         // strict: true → tidak ada type coercion (0 == 'admin' = false dengan strict)
         // Pastikan kolom users.role tidak null sebelum dicek
         $userRole = (string) ($user->role ?? '');
@@ -53,7 +53,6 @@ class RoleMiddleware
                 'ip'             => $request->ip(),
             ]);
 
-            // JANGAN kirim detail role ke frontend — informasi internal
             return response()->json([
                 'success' => false,
                 'message' => 'Forbidden. Anda tidak memiliki akses ke resource ini.',

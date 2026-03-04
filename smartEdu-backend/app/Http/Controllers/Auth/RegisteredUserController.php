@@ -23,7 +23,7 @@ class RegisteredUserController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            // ── Identitas ───────────────────────────────────────────
+            // Identitas 
             'nik'               => ['required', 'string', 'size:16', 'unique:siswas,nik'],
             'nisn'              => ['required', 'string', 'max:20', 'unique:siswas,nisn'],
             'nama'              => ['required', 'string', 'max:255'],
@@ -32,11 +32,11 @@ class RegisteredUserController extends Controller
             'telepon'           => ['nullable', 'string', 'max:20'],
             'alamat'            => ['nullable', 'string'],
 
-            // ── Orang tua ────────────────────────────────────────────
+            // Orang tua 
             'nama_orang_tua'    => ['nullable', 'string', 'max:255'],
             'telepon_orang_tua' => ['nullable', 'string', 'max:20'],
 
-            // ── Akun ─────────────────────────────────────────────────
+            // Akun 
             'email'             => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email', 'unique:siswas,email'],
             'password'          => ['required', 'confirmed', Rules\Password::defaults()],
 
@@ -53,7 +53,7 @@ class RegisteredUserController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Buat akun user
+            // Buat akun user
             $user = User::create([
                 'name'     => $request->nama,
                 'email'    => $request->email,
@@ -61,7 +61,7 @@ class RegisteredUserController extends Controller
                 'role'     => 'siswa',
             ]);
 
-            // 2. Buat profil siswa
+            // Buat profil siswa
             $siswa = Siswa::create([
                 'user_id'           => $user->id,
                 'kelas_id'          => $request->kelas_id ?? null,
@@ -80,7 +80,7 @@ class RegisteredUserController extends Controller
 
             event(new Registered($user));
 
-            // 3. Auto login setelah register
+            // Auto login setelah register
             Auth::login($user);
 
             DB::commit();

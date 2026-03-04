@@ -27,7 +27,7 @@ class Pembayaran extends Model
         'tanggal_jatuh_tempo' => 'date',
     ];
 
-    // ─── Relasi ───────────────────────────────────────────────────────────────
+    // Relasi 
 
     public function siswa(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
