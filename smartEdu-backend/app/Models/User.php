@@ -16,6 +16,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'email_verified_at',
     ];
 
     protected $hidden = [
@@ -23,15 +24,12 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password'          => 'hashed',
+    ];
 
-    // Role helpers 
+    // Role helpers
 
     public function isAdmin(): bool
     {
@@ -48,22 +46,14 @@ class User extends Authenticatable
         return $this->role === 'siswa';
     }
 
-    // Relasi profil 
+ 
+    public function siswa(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Siswa::class, 'user_id');
+    }
 
     public function guru(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Guru::class);
-    }
-
-    public function siswa(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(Siswa::class);
-    }
-
-    // Relasi log 
-
-    public function activityLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(ActivityLog::class);
+        return $this->hasOne(Guru::class, 'user_id');
     }
 }

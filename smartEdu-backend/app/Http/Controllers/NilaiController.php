@@ -10,7 +10,17 @@ use Illuminate\Http\JsonResponse;
 class NilaiController extends Controller
 {
     /**
+     * Enum jenis_nilai valid — sinkron dengan migration 2026_03_01_000002.
+     * FIX: Tambahkan 'pts' yang ada di DB tapi tidak ada di validasi sebelumnya.
+     */
+    private const JENIS_NILAI = 'required|in:tugas,pts,uts,uas,praktek,harian';
+
+    /**
      * GET /api/nilai
+     *
+     * FIX: Tambahkan filter by siswa_id untuk role siswa.
+     * Sebelumnya: tidak ada filter siswa → return semua nilai (data bocor).
+     * Sekarang: jika user isSiswa(), auto-filter by siswa_id milik sendiri.
      */
     public function index(Request $request): JsonResponse
     {
@@ -21,9 +31,18 @@ class NilaiController extends Controller
             $guru = $user->guru;
             abort_unless($guru, 403, 'Profil guru tidak ditemukan.');
             $query->where('guru_id', $guru->id);
+        } elseif ($user->isSiswa()) {
+            // Siswa hanya lihat nilai miliknya sendiri
+            $siswa = $user->siswa;
+            if (! $siswa) {
+                return $this->successResponse([], 'Profil siswa tidak ditemukan.');
+            }
+            $query->where('siswa_id', $siswa->id);
         }
 
-        if ($request->filled('siswa_id')) {
+        // Filter tambahan
+        if ($request->filled('siswa_id') && ! $user->isSiswa()) {
+            // Siswa tidak bisa override filter siswa_id
             $query->where('siswa_id', $request->siswa_id);
         }
         if ($request->filled('kelas_id')) {
@@ -49,6 +68,7 @@ class NilaiController extends Controller
 
     /**
      * POST /api/nilai
+     * Hanya admin + guru (dikontrol di api.php)
      */
     public function store(Request $request): JsonResponse
     {
@@ -58,7 +78,7 @@ class NilaiController extends Controller
             'siswa_id'          => 'required|exists:siswas,id',
             'kelas_id'          => 'required|exists:kelas,id',
             'mata_pelajaran_id' => 'required|exists:mata_pelajarans,id',
-            'jenis_nilai'       => 'required|in:tugas,uts,uas,praktek,harian',
+            'jenis_nilai'       => self::JENIS_NILAI,
             'nilai'             => 'required|numeric|min:0|max:100',
             'semester'          => 'required|in:1,2',
             'tahun_ajaran'      => 'required|string|max:20',
@@ -103,8 +123,18 @@ class NilaiController extends Controller
     /**
      * GET /api/nilai/{nilai}
      */
-    public function show(Nilai $nilai): JsonResponse
+    public function show(Request $request, Nilai $nilai): JsonResponse
     {
+        $user = $request->user();
+
+        // Siswa hanya bisa lihat nilai miliknya
+        if ($user->isSiswa()) {
+            $siswa = $user->siswa;
+            if ($siswa && $nilai->siswa_id !== $siswa->id) {
+                return $this->forbiddenResponse('Anda tidak memiliki akses ke nilai ini.');
+            }
+        }
+
         return $this->successResponse(
             $nilai->load(['siswa', 'kelas', 'mataPelajaran', 'guru']),
             'Detail Data Nilai'
@@ -113,6 +143,7 @@ class NilaiController extends Controller
 
     /**
      * PUT /api/nilai/{nilai}
+     * Hanya admin + guru
      */
     public function update(Request $request, Nilai $nilai): JsonResponse
     {
@@ -126,7 +157,7 @@ class NilaiController extends Controller
         }
 
         $request->validate([
-            'jenis_nilai' => 'required|in:tugas,uts,uas,praktek,harian',
+            'jenis_nilai' => self::JENIS_NILAI,
             'nilai'       => 'required|numeric|min:0|max:100',
             'keterangan'  => 'nullable|string',
         ]);
@@ -149,6 +180,7 @@ class NilaiController extends Controller
 
     /**
      * DELETE /api/nilai/{nilai}
+     * Hanya admin + guru
      */
     public function destroy(Request $request, Nilai $nilai): JsonResponse
     {
@@ -161,15 +193,15 @@ class NilaiController extends Controller
             }
         }
 
+        $nilai->delete();
+
         ActivityLog::catat(
             $user,
-            'hapus_nilai',
+            'delete_nilai',
             $nilai,
-            "Menghapus nilai ID {$nilai->id} — siswa ID {$nilai->siswa_id}",
+            "Menghapus nilai ID {$nilai->id}",
             $request->ip()
         );
-
-        $nilai->delete();
 
         return $this->successResponse(null, 'Nilai berhasil dihapus');
     }

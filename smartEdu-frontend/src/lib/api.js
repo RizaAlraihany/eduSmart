@@ -1,6 +1,17 @@
 import axios from "axios";
 
+/**
+ * FIX: Pisahkan BASE_URL dan SANCTUM_URL.
+ *
+ * Sebelumnya getCsrfCookie() menggunakan BASE_URL langsung.
+ * Jika suatu saat backend dipindah ke subdomain berbeda (misal api.smartedu.com)
+ * sedangkan CSRF endpoint ada di sanctum.smartedu.com, akan pecah.
+ *
+ * Sekarang: VITE_SANCTUM_URL dikontrol terpisah via .env.
+ * Default fallback ke BASE_URL (backward compatible).
+ */
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const SANCTUM_URL = import.meta.env.VITE_SANCTUM_URL ?? BASE_URL;
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
@@ -31,13 +42,11 @@ api.interceptors.request.use(
 
 // ── Response interceptor: handle error global ────────────────────────────────
 //
-// PERBAIKAN: Hapus window.location.replace() dari sini.
-// Hard redirect via window.location bypass React Router sepenuhnya,
-// menyebabkan app re-mount dari nol → AuthProvider restore() dipanggil ulang
-// → GET /api/user → 401 lagi → dispatch auth:logout → redirect lagi → LOOP.
+// PENTING: Jangan pakai window.location.replace() di sini.
+// Hard redirect bypass React Router → app re-mount → restore() dipanggil ulang
+// → GET /api/user → 401 → auth:logout → redirect lagi → INFINITE LOOP.
 //
-// Solusi: gunakan CustomEvent saja. Biarkan AuthProvider + React Router
-// (ProtectedRoute / GuestRoute) yang handle redirect secara reaktif.
+// Solusi: CustomEvent saja. AuthProvider + ProtectedRoute handle redirect reaktif.
 //
 api.interceptors.response.use(
   (response) => response,
@@ -45,22 +54,20 @@ api.interceptors.response.use(
     const status = error.response?.status;
 
     if (status === 401) {
-      // Sesi habis atau tidak terautentikasi.
-      // AuthProvider listen event ini → setUser(null) → isAuthenticated = false
-      // → ProtectedRoute otomatis redirect ke /login via React Router.
+      // Sesi habis / tidak terautentikasi.
+      // AuthProvider listen → setUser(null) → ProtectedRoute redirect ke /login.
       window.dispatchEvent(new CustomEvent("auth:logout"));
       return Promise.reject(error);
     }
 
     if (status === 403) {
-      // Authenticated tapi tidak punya akses ke resource ini.
-      // AppRoutes listen event ini → navigate ke /dashboard/unauthorized.
+      // Authenticated tapi tidak punya akses.
+      // AppRoutes listen → navigate ke /dashboard/unauthorized.
       window.dispatchEvent(new CustomEvent("auth:forbidden"));
       return Promise.reject(error);
     }
 
     if (status === 500) {
-      // Log ke console untuk debugging — jangan tampilkan detail ke user.
       console.error(
         "[API 500]",
         error.response?.data?.message ?? "Internal server error",
@@ -72,10 +79,10 @@ api.interceptors.response.use(
 );
 
 /**
- * Ambil CSRF cookie dari Sanctum sebelum POST pertama (login/register).
- * Dipanggil dari authService, bukan langsung dari komponen.
+ * Ambil CSRF cookie dari Sanctum sebelum POST login/register.
+ * FIX: Menggunakan SANCTUM_URL terpisah dari BASE_URL.
  */
 export const getCsrfCookie = () =>
-  axios.get(`${BASE_URL}/sanctum/csrf-cookie`, { withCredentials: true });
+  axios.get(`${SANCTUM_URL}/sanctum/csrf-cookie`, { withCredentials: true });
 
 export default api;

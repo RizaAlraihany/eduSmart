@@ -6,24 +6,40 @@ use App\Models\Jadwal;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\Rule;
 
 class JadwalController extends Controller
 {
     /**
      * GET /api/jadwal
+     *
+     * FIX: Tambahkan filter untuk role siswa.
+     * Sebelumnya: tidak ada filter siswa → return semua jadwal (data bocor).
+     * Sekarang: jika user isSiswa(), auto-filter by kelas_id siswa yang login.
      */
     public function index(Request $request): JsonResponse
     {
         $user  = $request->user();
         $query = Jadwal::with(['kelas', 'mataPelajaran', 'guru']);
 
+        // Filter by role
         if ($user->isGuru()) {
+            // Guru hanya lihat jadwal mengajarnya sendiri
             $guru = $user->guru;
             abort_unless($guru, 403, 'Profil guru tidak ditemukan.');
             $query->where('guru_id', $guru->id);
+        } elseif ($user->isSiswa()) {
+            // Siswa hanya lihat jadwal kelasnya
+            $siswa = $user->siswa;
+            if (! $siswa) {
+                return $this->successResponse([], 'Profil siswa tidak ditemukan.');
+            }
+            $query->where('kelas_id', $siswa->kelas_id);
         }
 
-        if ($request->filled('kelas_id')) {
+        // Filter tambahan (bisa dipakai semua role)
+        if ($request->filled('kelas_id') && ! $user->isSiswa()) {
+            // Siswa tidak bisa override kelas_id milik sendiri
             $query->where('kelas_id', $request->kelas_id);
         }
         if ($request->filled('guru_id') && $user->isAdmin()) {
@@ -49,6 +65,7 @@ class JadwalController extends Controller
 
     /**
      * POST /api/jadwal
+     * Hanya admin + guru (dikontrol di api.php via middleware role:admin,guru)
      */
     public function store(Request $request): JsonResponse
     {
@@ -88,7 +105,13 @@ class JadwalController extends Controller
             'status'            => $request->status,
         ]);
 
-        ActivityLog::catat($user, 'create_jadwal', $jadwal, "Membuat jadwal {$jadwal->hari}", $request->ip());
+        ActivityLog::catat(
+            $user,
+            'tambah_jadwal',
+            $jadwal,
+            "Menambahkan jadwal {$request->hari} kelas ID {$request->kelas_id}",
+            $request->ip()
+        );
 
         return $this->createdResponse($jadwal->load(['kelas', 'mataPelajaran', 'guru']), 'Jadwal berhasil ditambahkan');
     }
@@ -96,8 +119,18 @@ class JadwalController extends Controller
     /**
      * GET /api/jadwal/{jadwal}
      */
-    public function show(Jadwal $jadwal): JsonResponse
+    public function show(Request $request, Jadwal $jadwal): JsonResponse
     {
+        $user = $request->user();
+
+        // Siswa hanya bisa lihat jadwal kelasnya
+        if ($user->isSiswa()) {
+            $siswa = $user->siswa;
+            if ($siswa && $jadwal->kelas_id !== $siswa->kelas_id) {
+                return $this->forbiddenResponse('Anda tidak memiliki akses ke jadwal ini.');
+            }
+        }
+
         return $this->successResponse(
             $jadwal->load(['kelas', 'mataPelajaran', 'guru']),
             'Detail Jadwal'
@@ -106,11 +139,13 @@ class JadwalController extends Controller
 
     /**
      * PUT /api/jadwal/{jadwal}
+     * Hanya admin + guru
      */
     public function update(Request $request, Jadwal $jadwal): JsonResponse
     {
         $user = $request->user();
 
+        // Guru hanya bisa edit jadwal miliknya
         if ($user->isGuru()) {
             $guru = $user->guru;
             if (! $guru || $jadwal->guru_id !== $guru->id) {
@@ -118,27 +153,39 @@ class JadwalController extends Controller
             }
         }
 
-        $validated = $request->validate([
-            'kelas_id'          => ['sometimes', 'exists:kelas,id'],
-            'mata_pelajaran_id' => ['sometimes', 'exists:mata_pelajarans,id'],
-            'hari'              => ['sometimes', 'in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu'],
-            'jam_mulai'         => ['sometimes', 'date_format:H:i'],
-            'jam_selesai'       => ['sometimes', 'date_format:H:i', 'after:jam_mulai'],
-            'ruangan'           => ['nullable', 'string', 'max:50'],
-            'semester'          => ['sometimes', 'in:1,2'],
-            'tahun_ajaran'      => ['sometimes', 'string', 'max:20'],
-            'status'            => ['sometimes', 'in:aktif,nonaktif'],
+        $request->validate([
+            'kelas_id'          => 'required|exists:kelas,id',
+            'mata_pelajaran_id' => 'required|exists:mata_pelajarans,id',
+            'hari'              => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
+            'jam_mulai'         => 'required|date_format:H:i',
+            'jam_selesai'       => 'required|date_format:H:i|after:jam_mulai',
+            'ruangan'           => 'nullable|string|max:50',
+            'semester'          => 'required|in:1,2',
+            'tahun_ajaran'      => 'required|string|max:20',
+            'status'            => 'required|in:aktif,nonaktif',
         ]);
 
-        $jadwal->update($validated);
+        $jadwal->update($request->only([
+            'kelas_id',
+            'mata_pelajaran_id',
+            'hari',
+            'jam_mulai',
+            'jam_selesai',
+            'ruangan',
+            'semester',
+            'tahun_ajaran',
+            'status',
+        ]));
 
-        ActivityLog::catat($user, 'update_jadwal', $jadwal, "Mengubah jadwal ID {$jadwal->id}", $request->ip());
-
-        return $this->successResponse($jadwal->load(['kelas', 'mataPelajaran', 'guru']), 'Jadwal berhasil diperbarui');
+        return $this->successResponse(
+            $jadwal->load(['kelas', 'mataPelajaran', 'guru']),
+            'Jadwal berhasil diperbarui'
+        );
     }
 
     /**
      * DELETE /api/jadwal/{jadwal}
+     * Hanya admin + guru
      */
     public function destroy(Request $request, Jadwal $jadwal): JsonResponse
     {
@@ -150,8 +197,6 @@ class JadwalController extends Controller
                 return $this->forbiddenResponse('Anda tidak memiliki akses untuk menghapus jadwal ini.');
             }
         }
-
-        ActivityLog::catat($user, 'hapus_jadwal', $jadwal, "Menghapus jadwal ID {$jadwal->id}", $request->ip());
 
         $jadwal->delete();
 

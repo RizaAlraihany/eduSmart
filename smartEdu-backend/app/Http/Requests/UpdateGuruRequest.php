@@ -5,10 +5,12 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+
 class UpdateGuruRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        // Route sudah diproteksi middleware role:admin
         return true;
     }
 

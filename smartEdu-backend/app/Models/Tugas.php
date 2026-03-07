@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Tugas extends Model
 {
     use HasFactory, SoftDeletes;
-
+    
     protected $fillable = [
         'guru_id',
         'kelas_id',
@@ -45,10 +45,6 @@ class Tugas extends Model
         return $this->belongsTo(MataPelajaran::class);
     }
 
-    /**
-     * Nilai yang masuk untuk tugas ini.
-     * Dipakai untuk cek sudah berapa siswa yang dinilai.
-     */
     public function nilais(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Nilai::class);
@@ -56,20 +52,12 @@ class Tugas extends Model
 
     // Scopes 
 
-    /**
-     * Tugas yang masih aktif dan belum lewat deadline.
-     * Dipakai di dashboard siswa untuk "tugas terdekat".
-     */
     public function scopeAktifBelumDeadline($query)
     {
         return $query->where('status', 'aktif')
-                     ->where('tanggal_deadline', '>=', today());
+            ->where('tanggal_deadline', '>=', today());
     }
 
-    /**
-     * Tugas yang sudah lewat deadline tapi belum semua siswa dinilai.
-     * Dipakai di dashboard guru untuk "tugas belum dinilai".
-     */
     public function scopeBelumDinilaiSemua($query)
     {
         return $query->whereDoesntHave('nilais');

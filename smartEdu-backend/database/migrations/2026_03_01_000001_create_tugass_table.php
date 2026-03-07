@@ -8,17 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('tugass', function (Blueprint $table) {
+        Schema::create('tugas', function (Blueprint $table) {
             $table->id();
             $table->foreignId('guru_id')
-                  ->constrained('gurus')
-                  ->onDelete('cascade');
+                ->constrained('gurus')
+                ->onDelete('cascade');
             $table->foreignId('kelas_id')
-                  ->constrained('kelas')
-                  ->onDelete('cascade');
+                ->constrained('kelas')
+                ->onDelete('cascade');
             $table->foreignId('mata_pelajaran_id')
-                  ->constrained('mata_pelajarans')
-                  ->onDelete('cascade');
+                ->constrained('mata_pelajarans')
+                ->onDelete('cascade');
             $table->string('judul');
             $table->text('deskripsi')->nullable();
             $table->date('tanggal_diberikan');
@@ -37,6 +37,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('tugass');
+        // FIX: down() harus drop tabel yang sama dengan up()
+        Schema::dropIfExists('tugas');
     }
 };

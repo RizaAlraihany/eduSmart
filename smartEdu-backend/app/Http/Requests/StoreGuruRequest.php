@@ -4,6 +4,13 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * FIX: File ini dipindahkan dari app/Http/Requests/Auth/StoreGuruRequest.php
+ * ke app/Http/Requests/StoreGuruRequest.php
+ *
+ * Masalah sama dengan UpdateGuruRequest — namespace App\Http\Requests
+ * tidak cocok dengan lokasi file di subfolder Auth/.
+ */
 class StoreGuruRequest extends FormRequest
 {
     public function authorize(): bool
