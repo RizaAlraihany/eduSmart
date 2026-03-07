@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/shared/hooks/useAuth";
 
 const AuthLoader = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50">

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Menu, X, Bell } from "lucide-react";
-import Sidebar from "@/Sidebar";
-import { useAuth } from "@/hooks/useAuth";
+import Sidebar from "@/shared/components/layout/Sidebar";
+import { useAuth } from "@/shared/hooks/useAuth";
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);

@@ -14,9 +14,9 @@ import {
   Inbox,
 } from "lucide-react";
 import { useAuth } from "@/shared/hooks/useAuth";
-import dashboardService from "@/services/dashboardService";
+import { dashboardService } from "@/features/dashboard/services/dashboardService";
 
-// Helpers 
+// Helpers
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -64,7 +64,7 @@ const getActionLabel = (action) =>
     cls: "bg-gray-100 text-gray-600",
   };
 
-// Skeleton Loading 
+// Skeleton Loading
 const SkeletonPulse = ({ className }) => (
   <div className={`bg-gray-200 rounded-lg animate-pulse ${className}`} />
 );
@@ -106,7 +106,7 @@ const DashboardSkeleton = () => (
   </div>
 );
 
-// Error State 
+// Error State
 const ErrorState = ({ onRetry }) => (
   <div className="flex flex-col items-center justify-center min-h-[400px] gap-5">
     <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center">
@@ -130,7 +130,7 @@ const ErrorState = ({ onRetry }) => (
   </div>
 );
 
-// Empty State 
+// Empty State
 const EmptyState = ({ icon: Icon, title, description }) => (
   <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
     <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
@@ -143,7 +143,7 @@ const EmptyState = ({ icon: Icon, title, description }) => (
   </div>
 );
 
-// Stat Card 
+// Stat Card
 const StatCard = ({ icon: Icon, iconBg, label, value, sub, trend }) => (
   <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow duration-200 group">
     <div
@@ -165,7 +165,7 @@ const StatCard = ({ icon: Icon, iconBg, label, value, sub, trend }) => (
   </div>
 );
 
-// Progress Row (Progres Nilai Guru) 
+// Progress Row (Progres Nilai Guru)
 const ProgressRow = ({ item }) => {
   const pct = item?.persen_selesai ?? 0;
   const barColor =
@@ -199,7 +199,7 @@ const ProgressRow = ({ item }) => {
   );
 };
 
-// Log Row 
+// Log Row
 const LogRow = ({ log }) => {
   const action = getActionLabel(log?.action);
   return (
@@ -231,7 +231,7 @@ const LogRow = ({ log }) => {
   );
 };
 
-// Main Component 
+// Main Component
 const DashboardAdmin = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -263,7 +263,7 @@ const DashboardAdmin = () => {
   if (error) return <ErrorState onRetry={fetchData} />;
   if (!data) return null;
 
-  // Safe field mapping 
+  // Safe field mapping
   const totalSiswa = data?.total_siswa_aktif ?? 0;
   const totalGuru = data?.total_guru_aktif ?? 0;
   const totalStaf = data?.total_staf_aktif ?? 0;

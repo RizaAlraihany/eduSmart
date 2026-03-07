@@ -17,10 +17,10 @@ import {
   Award,
   BarChart3,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { dashboardService } from "@/services/dataService";
+import { useAuth } from "@/shared/hooks/useAuth";
+import { dashboardService } from "@/features/dashboard/services/dashboardService";
 
-// Helpers 
+// Helpers
 
 const greeting = () => {
   const h = new Date().getHours();

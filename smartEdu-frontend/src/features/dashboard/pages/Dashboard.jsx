@@ -4,9 +4,9 @@
  * Setiap role component mengurus fetch-nya sendiri.
  */
 import { useAuth } from "@/shared/hooks/useAuth";
-import DashboardAdmin from "@/DashboardAdmin";
-import DashboardGuru from "@/DashboardGuru";
-import DashboardSiswa from "@/DashboardSiswa";
+import DashboardAdmin from "@/features/dashboard/pages/DashboardAdmin";
+import DashboardGuru from "@/features/dashboard/pages/DashboardGuru";
+import DashboardSiswa from "@/features/dashboard/pages/DashboardSiswa";
 
 const Dashboard = () => {
   const { isAdmin, isGuru, isSiswa } = useAuth();

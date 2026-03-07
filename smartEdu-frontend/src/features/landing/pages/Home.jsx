@@ -1,10 +1,10 @@
 import React from "react";
-import Header from "../../components/layout/Header";
-import Footer from "../../components/layout/Footer";
-import HeroSection from "./sections/HeroSection";
-import FeaturesSection from "./sections/FeaturesSection";
-import TestimonialsSection from "./sections/TestimonialsSection";
-import CTASection from "./sections/CTASection";
+import Header from "@/shared/components/layout/Header";
+import Footer from "@/shared/components/layout/Footer";
+import HeroSection from "@/features/landing/pages/sections/HeroSection";
+import FeaturesSection from "@/features/landing/pages/sections/FeaturesSection";
+import TestimonialsSection from "@/features/landing/pages/sections/TestimonialsSection";
+import CTASection from "@/features/landing/pages/sections/CTASection";
 
 const Home = () => {
   return (

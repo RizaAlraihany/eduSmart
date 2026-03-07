@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { ShieldOff, ArrowLeft } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/shared/hooks/useAuth";
 
 const Unauthorized = () => {
   const navigate = useNavigate();
-  const { user }  = useAuth();
+  const { user } = useAuth();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[500px] gap-6 text-center px-4">
@@ -23,8 +23,10 @@ const Unauthorized = () => {
         <h1 className="text-2xl font-black text-gray-900">Akses Ditolak</h1>
         <p className="text-gray-500 text-sm mt-2 max-w-sm">
           Halaman ini tidak bisa diakses dengan role{" "}
-          <span className="font-semibold text-gray-700 capitalize">{user?.role ?? "Anda"}</span>.
-          Hubungi administrator jika ini adalah kesalahan.
+          <span className="font-semibold text-gray-700 capitalize">
+            {user?.role ?? "Anda"}
+          </span>
+          . Hubungi administrator jika ini adalah kesalahan.
         </p>
       </div>
 
