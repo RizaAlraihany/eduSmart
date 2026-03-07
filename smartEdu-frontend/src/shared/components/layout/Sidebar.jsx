@@ -1,7 +1,3 @@
-/**
- * src/shared/components/layout/Sidebar.jsx
- * Import path sudah disesuaikan dengan struktur baru.
- */
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -28,11 +24,7 @@ const adminMenu = [
   { path: "/dashboard/siswa", icon: Users, label: "Data Siswa" },
   { path: "/dashboard/guru", icon: GraduationCap, label: "Data Guru" },
   { path: "/dashboard/kelas", icon: School, label: "Data Kelas" },
-  {
-    path: "/dashboard/mata-pelajaran",
-    icon: BookOpen,
-    label: "Mata Pelajaran",
-  },
+  { path: "/dashboard/mata-pelajaran", icon: BookOpen, label: "Mata Pelajaran"},
   { path: "/dashboard/jadwal", icon: Calendar, label: "Jadwal" },
   { path: "/dashboard/absensi", icon: ClipboardCheck, label: "Absensi" },
   { path: "/dashboard/nilai", icon: TrendingUp, label: "Nilai" },

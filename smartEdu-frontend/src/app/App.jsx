@@ -1,18 +1,24 @@
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 import { AuthProvider } from "@/app/providers/AuthProvider";
 import { useAuth } from "@/shared/hooks/useAuth";
 import DashboardLayout from "@/shared/components/layout/DashboardLayout";
 import ProtectedRoute from "@/shared/guards/ProtectedRoute";
 
-// Non-lazy: dibutuhkan segera saat app load 
+// Non-lazy: dibutuhkan segera saat app load
 import Home from "@/features/landing/pages/Home";
 import Login from "@/features/auth/pages/Login";
 import Register from "@/features/auth/pages/Register";
 import Dashboard from "@/features/dashboard/pages/Dashboard";
 import Unauthorized from "@/shared/pages/Unauthorized";
 
-// Lazy — Admin only 
+// Lazy — Admin only
 const SiswaPage = lazy(() => import("@/features/siswa/pages/SiswaPage"));
 const GuruPage = lazy(() => import("@/features/guru/pages/GuruPage"));
 const KelasPage = lazy(() => import("@/features/kelas/pages/KelasPage"));
@@ -23,13 +29,13 @@ const PembayaranPage = lazy(
   () => import("@/features/pembayaran/pages/PembayaranPage"),
 );
 
-// Lazy — Admin + Guru 
+// Lazy — Admin + Guru
 const JadwalPage = lazy(() => import("@/features/jadwal/pages/JadwalPage"));
 const AbsensiPage = lazy(() => import("@/features/absensi/pages/AbsensiPage"));
 const NilaiPage = lazy(() => import("@/features/nilai/pages/NilaiPage"));
 const TugasPage = lazy(() => import("@/features/tugas/pages/TugasPage"));
 
-// Lazy — Semua role 
+// Lazy — Semua role
 const PengumumanPage = lazy(
   () => import("@/features/pengumuman/pages/PengumumanPage"),
 );
@@ -48,157 +54,171 @@ const GuestRoute = ({ children }) => {
   return !isAuthenticated ? children : <Navigate to="/dashboard" replace />;
 };
 
-// Route tree 
-const AppRoutes = () => (
-  <Routes>
-    {/* Public */}
-    <Route path="/" element={<Home />} />
+// AppRoutes 
+const AppRoutes = () => {
+  const navigate = useNavigate();
 
-    {/* Guest only */}
-    <Route
-      path="/login"
-      element={
-        <GuestRoute>
-          <Login />
-        </GuestRoute>
-      }
-    />
-    <Route
-      path="/register"
-      element={
-        <GuestRoute>
-          <Register />
-        </GuestRoute>
-      }
-    />
+  useEffect(() => {
 
-    {/* Protected — DashboardLayout sebagai shell */}
-    <Route
-      path="/dashboard"
-      element={
-        <ProtectedRoute>
-          <DashboardLayout />
-        </ProtectedRoute>
-      }
-    >
-      {/* Index — semua role */}
-      <Route index element={<Dashboard />} />
+    const handleForbidden = () => {
+      navigate("/dashboard/unauthorized", { replace: true });
+    };
 
-      {/* 403 page */}
-      <Route path="unauthorized" element={<Unauthorized />} />
+    window.addEventListener("auth:forbidden", handleForbidden);
+    return () => window.removeEventListener("auth:forbidden", handleForbidden);
+  }, [navigate]);
 
-      {/* ── Admin only ── */}
+  return (
+    <Routes>
+      {/* Public */}
+      <Route path="/" element={<Home />} />
+
+      {/* Guest only */}
       <Route
-        path="siswa"
+        path="/login"
         element={
-          <ProtectedRoute requiredRole="admin">
-            <Suspense fallback={<PageLoader />}>
-              <SiswaPage />
-            </Suspense>
-          </ProtectedRoute>
+          <GuestRoute>
+            <Login />
+          </GuestRoute>
         }
       />
       <Route
-        path="guru"
+        path="/register"
         element={
-          <ProtectedRoute requiredRole="admin">
-            <Suspense fallback={<PageLoader />}>
-              <GuruPage />
-            </Suspense>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="kelas"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <Suspense fallback={<PageLoader />}>
-              <KelasPage />
-            </Suspense>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="mata-pelajaran"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <Suspense fallback={<PageLoader />}>
-              <MataPelajaranPage />
-            </Suspense>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="pembayaran"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <Suspense fallback={<PageLoader />}>
-              <PembayaranPage />
-            </Suspense>
-          </ProtectedRoute>
+          <GuestRoute>
+            <Register />
+          </GuestRoute>
         }
       />
 
-      {/* ── Admin + Guru ── */}
+      {/* Protected — DashboardLayout sebagai shell */}
       <Route
-        path="jadwal"
+        path="/dashboard"
         element={
-          <ProtectedRoute requiredRole={["admin", "guru"]}>
-            <Suspense fallback={<PageLoader />}>
-              <JadwalPage />
-            </Suspense>
+          <ProtectedRoute>
+            <DashboardLayout />
           </ProtectedRoute>
         }
-      />
-      <Route
-        path="absensi"
-        element={
-          <ProtectedRoute requiredRole={["admin", "guru"]}>
-            <Suspense fallback={<PageLoader />}>
-              <AbsensiPage />
-            </Suspense>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="nilai"
-        element={
-          <ProtectedRoute requiredRole={["admin", "guru"]}>
-            <Suspense fallback={<PageLoader />}>
-              <NilaiPage />
-            </Suspense>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="tugas"
-        element={
-          <ProtectedRoute requiredRole={["admin", "guru"]}>
-            <Suspense fallback={<PageLoader />}>
-              <TugasPage />
-            </Suspense>
-          </ProtectedRoute>
-        }
-      />
+      >
+        {/* Index — semua role */}
+        <Route index element={<Dashboard />} />
 
-      {/* ── Semua role ── */}
-      <Route
-        path="pengumuman"
-        element={
-          <Suspense fallback={<PageLoader />}>
-            <PengumumanPage />
-          </Suspense>
-        }
-      />
+        {/* 403 page */}
+        <Route path="unauthorized" element={<Unauthorized />} />
 
-      {/* Catch-all dalam dashboard */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Route>
+        {/* ── Admin only ── */}
+        <Route
+          path="siswa"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <SiswaPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="guru"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <GuruPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="kelas"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <KelasPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="mata-pelajaran"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <MataPelajaranPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="pembayaran"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <PembayaranPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
 
-    {/* Catch-all global */}
-    <Route path="*" element={<Navigate to="/" replace />} />
-  </Routes>
-);
+        {/* ── Admin + Guru ── */}
+        <Route
+          path="jadwal"
+          element={
+            <ProtectedRoute requiredRole={["admin", "guru"]}>
+              <Suspense fallback={<PageLoader />}>
+                <JadwalPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="absensi"
+          element={
+            <ProtectedRoute requiredRole={["admin", "guru"]}>
+              <Suspense fallback={<PageLoader />}>
+                <AbsensiPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="nilai"
+          element={
+            <ProtectedRoute requiredRole={["admin", "guru"]}>
+              <Suspense fallback={<PageLoader />}>
+                <NilaiPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="tugas"
+          element={
+            <ProtectedRoute requiredRole={["admin", "guru"]}>
+              <Suspense fallback={<PageLoader />}>
+                <TugasPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ── Semua role ── */}
+        <Route
+          path="pengumuman"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <PengumumanPage />
+            </Suspense>
+          }
+        />
+
+        {/* Catch-all dalam dashboard */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Route>
+
+      {/* Catch-all global */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+};
 
 // App root 
 const App = () => (

@@ -12,7 +12,7 @@ const api = axios.create({
   },
 });
 
-// Request interceptor: inject XSRF-TOKEN dari Sanctum cookie 
+// ── Request interceptor: inject XSRF-TOKEN dari Sanctum cookie ──────────────
 api.interceptors.request.use(
   (config) => {
     const raw = document.cookie
@@ -29,23 +29,33 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Response interceptor: handle error global 
+// ── Response interceptor: handle error global ────────────────────────────────
+//
+// PERBAIKAN: Hapus window.location.replace() dari sini.
+// Hard redirect via window.location bypass React Router sepenuhnya,
+// menyebabkan app re-mount dari nol → AuthProvider restore() dipanggil ulang
+// → GET /api/user → 401 lagi → dispatch auth:logout → redirect lagi → LOOP.
+//
+// Solusi: gunakan CustomEvent saja. Biarkan AuthProvider + React Router
+// (ProtectedRoute / GuestRoute) yang handle redirect secara reaktif.
+//
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
 
     if (status === 401) {
-      // Session expired atau tidak terautentikasi.
-      // Beritahu AuthProvider via custom event, lalu redirect ke login.
+      // Sesi habis atau tidak terautentikasi.
+      // AuthProvider listen event ini → setUser(null) → isAuthenticated = false
+      // → ProtectedRoute otomatis redirect ke /login via React Router.
       window.dispatchEvent(new CustomEvent("auth:logout"));
-      window.location.replace("/login");
       return Promise.reject(error);
     }
 
     if (status === 403) {
       // Authenticated tapi tidak punya akses ke resource ini.
-      window.location.replace("/dashboard/unauthorized");
+      // AppRoutes listen event ini → navigate ke /dashboard/unauthorized.
+      window.dispatchEvent(new CustomEvent("auth:forbidden"));
       return Promise.reject(error);
     }
 
