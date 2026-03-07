@@ -8,9 +8,9 @@ import {
   EyeOff,
   AlertCircle,
 } from "lucide-react";
-import useAuth from "@/shared/hooks/useAuth";
-import Button from "@/shared/components/ui/Button";
+import { useAuth } from "@/shared/hooks/useAuth";
 import Input from "@/shared/components/ui/Input";
+import Button from "@/shared/components/ui/Button";
 
 const Login = () => {
   const navigate = useNavigate();

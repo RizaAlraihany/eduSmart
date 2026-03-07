@@ -14,7 +14,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { useAuth } from "@/shared/hooks/useAuth";
-import { dashboardService } from "@/features/dashboard/services/dashboardService";
+import dashboardService from "@/features/dashboard/services/dashboardService";
 
 // Helpers
 
