@@ -4,3 +4,4 @@ export { default as jadwalService } from "@/features/jadwal/services/jadwalServi
 export { default as nilaiService } from "@/features/nilai/services/nilaiService";
 export { default as pembayaranService } from "@/features/pembayaran/services/pembayaranService";
 export { default as pengumumanService } from "@/features/pengumuman/services/pengumumanService";
+export { default as tugasService } from "@/features/tugas/services/tugasService";
