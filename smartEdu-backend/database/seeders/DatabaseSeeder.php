@@ -84,10 +84,21 @@ class DatabaseSeeder extends Seeder
 
         // Create Kelas
         $kelasList = [
-            ['nama_kelas' => 'X IPA 1', 'tingkat' => 'X', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 30],
-            ['nama_kelas' => 'X IPA 2', 'tingkat' => 'X', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 30],
-            ['nama_kelas' => 'XI IPA 1', 'tingkat' => 'XI', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 30],
-            ['nama_kelas' => 'XII IPA 1', 'tingkat' => 'XII', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 30],
+            // TKJ
+            ['nama_kelas' => 'X TKJ A',   'tingkat' => 'X',   'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
+            ['nama_kelas' => 'X TKJ B',   'tingkat' => 'X',   'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
+            ['nama_kelas' => 'XI TKJ A',  'tingkat' => 'XI',  'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
+            ['nama_kelas' => 'XI TKJ B',  'tingkat' => 'XI',  'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
+            ['nama_kelas' => 'XII TKJ A', 'tingkat' => 'XII', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
+            ['nama_kelas' => 'XII TKJ B', 'tingkat' => 'XII', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
+
+            // TKR
+            ['nama_kelas' => 'X TKR A',   'tingkat' => 'X',   'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
+            ['nama_kelas' => 'X TKR B',   'tingkat' => 'X',   'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
+            ['nama_kelas' => 'XI TKR A',  'tingkat' => 'XI',  'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
+            ['nama_kelas' => 'XI TKR B',  'tingkat' => 'XI',  'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
+            ['nama_kelas' => 'XII TKR A', 'tingkat' => 'XII', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
+            ['nama_kelas' => 'XII TKR B', 'tingkat' => 'XII', 'tahun_ajaran' => '2024/2025', 'kapasitas' => 36],
         ];
 
         $kelasModels = [];
@@ -103,32 +114,34 @@ class DatabaseSeeder extends Seeder
         $siswaModels = [];
 
         foreach ($kelasModels as $kelas) {
-            for ($i = 1; $i <= 5; $i++) {
+            for ($i = 1; $i <= 10; $i++) {
                 $siswaCount++;
                 $nisn = '2024' . str_pad($siswaCount, 6, '0', STR_PAD_LEFT);
 
+                $jenisKelamin = $i % 2 === 0 ? 'P' : 'L';
+
                 $user = User::create([
-                    'name' => 'Siswa ' . $siswaCount,
-                    'email' => 'siswa' . $siswaCount . '@edusmart.com',
-                    'password' => Hash::make('password'),
-                    'role' => 'siswa',
-                    'email_verified_at' => now(),
+                    'name'               => "Siswa {$kelas->nama_kelas} {$i}",
+                    'email'              => 'siswa' . $siswaCount . '@smartedu.test',
+                    'password'           => Hash::make('password'),
+                    'role'               => 'siswa',
+                    'email_verified_at'  => now(),
                 ]);
 
                 $siswaModels[] = Siswa::create([
-                    'user_id' => $user->id,
-                    'kelas_id' => $kelas->id,
-                    'nik' => '320101' . str_pad($siswaCount, 10, '0', STR_PAD_LEFT),
-                    'nisn' => $nisn,
-                    'nama' => 'Siswa ' . $siswaCount,
-                    'email' => 'siswa' . $siswaCount . '@edusmart.com',
-                    'alamat' => 'Jl. Siswa No. ' . $siswaCount . ', Jakarta',
-                    'telepon' => '081234567' . str_pad($siswaCount, 3, '0', STR_PAD_LEFT),
-                    'tanggal_lahir' => Carbon::now()->subYears(rand(16, 18))->format('Y-m-d'),
-                    'jenis_kelamin' => $siswaCount % 2 == 0 ? 'P' : 'L',
-                    'nama_orang_tua' => 'Orang Tua Siswa ' . $siswaCount,
-                    'telepon_orang_tua' => '081234567' . str_pad($siswaCount + 1000, 3, '0', STR_PAD_LEFT),
-                    'status' => 'aktif',
+                    'user_id'           => $user->id,
+                    'kelas_id'          => $kelas->id,
+                    'nik'               => '3201' . str_pad($siswaCount, 12, '0', STR_PAD_LEFT),
+                    'nisn'              => $nisn,
+                    'nama'              => "Siswa {$kelas->nama_kelas} {$i}",
+                    'email'             => $user->email,
+                    'telepon'           => '0812' . str_pad($siswaCount, 8, '0', STR_PAD_LEFT),
+                    'alamat'            => "Jl. Pelajar No. {$siswaCount}, Kota Serang",
+                    'tanggal_lahir'     => Carbon::now()->subYears(rand(14, 18))->format('Y-m-d'),
+                    'jenis_kelamin'     => $jenisKelamin,
+                    'nama_orang_tua'    => "Orang Tua Siswa {$siswaCount}",
+                    'telepon_orang_tua' => '0813' . str_pad($siswaCount, 8, '0', STR_PAD_LEFT),
+                    'status'            => 'aktif',
                 ]);
             }
         }

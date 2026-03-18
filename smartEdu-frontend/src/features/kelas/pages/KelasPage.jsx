@@ -1,337 +1,419 @@
+// src/features/kelas/pages/KelasPage.jsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   School,
   Search,
   Plus,
-  RefreshCw,
   X,
   AlertCircle,
+  RefreshCw,
   Users,
+  MoreHorizontal,
+  Edit2,
+  Trash2,
+  BookOpen,
 } from "lucide-react";
 import api from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import ActionBar from "@/shared/components/ui/ActionBar";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import StatusBadge from "@/shared/components/ui/StatusBadge";
+import { TableSkeletonRow } from "@/shared/components/ui/SkeletonLoader";
 
-// Query fns 
-const fetchKelas = (params) =>
-  api.get("/kelas", { params }).then((r) => r.data);
-
+// ─── Query fns ──────────────────────────────────────────────────
+const fetchKelas = (p) => api.get("/kelas", { params: p }).then((r) => r.data);
 const deleteKelas = (id) => api.delete(`/kelas/${id}`).then((r) => r.data);
 
-// Sub-components 
-const Badge = ({ status }) => {
-  const map = {
-    aktif: "bg-green-100 text-green-700",
-    nonaktif: "bg-red-100 text-red-700",
-  };
+// ─── ProgressBar Kapasitas ──────────────────────────────────────
+const KapasitasBar = ({ terisi, kapasitas }) => {
+  const pct =
+    kapasitas > 0 ? Math.min(100, Math.round((terisi / kapasitas) * 100)) : 0;
+  const color =
+    pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500";
+
   return (
-    <span
-      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${map[status] ?? "bg-gray-100 text-gray-600"}`}
-    >
-      {status}
-    </span>
+    <div className="w-28">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-semibold text-slate-700">
+          {terisi}
+          <span className="text-slate-400 font-normal">/{kapasitas}</span>
+        </span>
+        <span
+          className={`text-[10px] font-bold ${pct >= 90 ? "text-red-600" : pct >= 70 ? "text-amber-600" : "text-emerald-600"}`}
+        >
+          {pct}%
+        </span>
+      </div>
+      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${color}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
   );
 };
 
-const SkeletonRow = () => (
-  <tr className="animate-pulse">
-    {[...Array(7)].map((_, i) => (
-      <td key={i} className="px-6 py-4">
-        <div className="h-4 bg-gray-200 rounded w-3/4" />
-      </td>
-    ))}
-  </tr>
-);
+// ─── Row Actions ────────────────────────────────────────────────
+const RowActions = ({ item, onDelete, deleting }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+      >
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-20 w-36 bg-white rounded-xl shadow-lg border border-slate-100 py-1">
+            <button
+              onClick={() => setOpen(false)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              <Edit2 className="w-3.5 h-3.5 text-indigo-500" /> Edit
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onDelete(item.id);
+              }}
+              disabled={deleting}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> {deleting ? "..." : "Hapus"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
+// ─── Tingkat Pills ──────────────────────────────────────────────
 const TINGKAT = ["X", "XI", "XII"];
 
-// Main Component 
+// ─── Main Component ─────────────────────────────────────────────
 const KelasPage = () => {
-  const queryClient = useQueryClient();
-
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebounced] = useState("");
-  const [page, setPage] = useState(1);
+  const [debounced, setDebounced] = useState("");
   const [filterTingkat, setFilterTingkat] = useState("");
+  const [page, setPage] = useState(1);
 
-  const handleSearchChange = (e) => {
-    const val = e.target.value;
-    setSearch(val);
+  const handleSearch = (e) => {
+    const v = e.target.value;
+    setSearch(v);
     setPage(1);
-    clearTimeout(window._kelasSearchTimer);
-    window._kelasSearchTimer = setTimeout(() => setDebounced(val), 400);
+    clearTimeout(window._kelasST);
+    window._kelasST = setTimeout(() => setDebounced(v), 400);
   };
 
   const params = {
     per_page: 15,
     page,
-    search: debouncedSearch || undefined,
+    search: debounced || undefined,
     tingkat: filterTingkat || undefined,
   };
 
-  // useQuery 
   const { data, isLoading, isError, error, isFetching, refetch } = useQuery({
     queryKey: queryKeys.kelas.list(params),
     queryFn: () => fetchKelas(params),
-    placeholderData: (prev) => prev,
+    placeholderData: (p) => p,
   });
 
   const list = data?.data ?? [];
   const meta = data?.meta ?? null;
 
-  // useMutation: delete 
-  const deleteMutation = useMutation({
+  const deleteMut = useMutation({
     mutationFn: deleteKelas,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.kelas.all }),
-    // Jika kelas masih punya siswa → API return 422, tampilkan pesan server
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.kelas.all }),
   });
 
   const handleDelete = (id) => {
-    if (!window.confirm("Hapus data kelas ini?")) return;
-    deleteMutation.mutate(id);
+    if (!window.confirm("Hapus kelas ini?")) return;
+    deleteMut.mutate(id);
   };
 
-  const errorMessage =
-    error?.response?.data?.message ?? "Gagal memuat data kelas.";
-
-  const deleteMutationError =
-    deleteMutation.error?.response?.data?.message ?? "Gagal menghapus kelas.";
+  // Summary counts
+  const totalSiswa = list.reduce(
+    (a, k) => a + (k.siswas?.length ?? k.siswas_count ?? 0),
+    0,
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center">
-              <School className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+        {/* Header */}
+        <PageHeader
+          icon={School}
+          title="Data Kelas"
+          subtitle="Manajemen kelas dan kapasitas siswa"
+        >
+          {!isLoading && meta && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100">
+                <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
+                <span className="text-xs font-semibold text-indigo-600">
+                  {meta.total} kelas
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100">
+                <Users className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-xs font-semibold text-emerald-600">
+                  {totalSiswa} siswa
+                </span>
+              </div>
             </div>
-            Data Kelas
-          </h1>
-          <p className="text-gray-500 text-sm mt-1 ml-12">
-            Kelola data kelas dan wali kelas
-          </p>
-        </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
-          <Plus className="w-4 h-4" />
-          Tambah Kelas
-        </button>
-      </div>
-
-      {/* Mutation error */}
-      {deleteMutation.isError && (
-        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {/* Tampilkan pesan 422 dari server (misal: "masih punya siswa") */}
-          <span>{deleteMutationError}</span>
-          <button onClick={() => deleteMutation.reset()} className="ml-auto">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Toolbar*/}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Cari nama kelas..."
-            value={search}
-            onChange={handleSearchChange}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-          {search && (
-            <button
-              onClick={() => {
-                setSearch("");
-                setDebounced("");
-                setPage(1);
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
           )}
-        </div>
+        </PageHeader>
 
-        <select
-          value={filterTingkat}
-          onChange={(e) => {
-            setFilterTingkat(e.target.value);
-            setPage(1);
-          }}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          <option value="">Semua Tingkat</option>
-          {TINGKAT.map((t) => (
-            <option key={t} value={t}>
-              Tingkat {t}
-            </option>
-          ))}
-        </select>
+        {/* Main Card */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          {/* Action Bar */}
+          <div className="px-5 py-4 border-b border-slate-100">
+            <ActionBar
+              onRefresh={refetch}
+              loading={isFetching}
+              left={
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Cari nama kelas..."
+                      value={search}
+                      onChange={handleSearch}
+                      className="w-56 pl-9 pr-8 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-slate-400 transition-all"
+                    />
+                    {search && (
+                      <button
+                        onClick={() => {
+                          setSearch("");
+                          setDebounced("");
+                          setPage(1);
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {/* Tingkat pills */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        setFilterTingkat("");
+                        setPage(1);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${!filterTingkat ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300"}`}
+                    >
+                      Semua
+                    </button>
+                    {TINGKAT.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => {
+                          setFilterTingkat(t === filterTingkat ? "" : t);
+                          setPage(1);
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${filterTingkat === t ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300"}`}
+                      >
+                        Kelas {t}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              }
+              right={
+                <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm shadow-indigo-100">
+                  <Plus className="w-3.5 h-3.5" /> Tambah Kelas
+                </button>
+              }
+            />
+          </div>
 
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-        >
-          <RefreshCw
-            className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </button>
-      </div>
+          {isFetching && !isLoading && (
+            <div className="h-0.5 bg-indigo-500 animate-pulse" />
+          )}
 
-      {/* Query error*/}
-      {isError && (
-        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>{errorMessage}</span>
-          <button
-            onClick={() => refetch()}
-            className="ml-auto flex items-center gap-1 underline text-xs"
-          >
-            <RefreshCw className="w-3 h-3" /> Coba lagi
-          </button>
-        </div>
-      )}
+          {isError && (
+            <div className="mx-5 my-4 flex items-center gap-3 p-3.5 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>
+                {error?.response?.data?.message ?? "Gagal memuat data kelas."}
+              </span>
+            </div>
+          )}
 
-      {/* Tabel */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-        {isFetching && !isLoading && (
-          <div className="h-0.5 bg-orange-400 animate-pulse" />
-        )}
+          {/* Delete error */}
+          {deleteMut.isError && (
+            <div className="mx-5 my-2 flex items-center gap-3 p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>
+                {deleteMut.error?.response?.data?.message ??
+                  "Gagal menghapus kelas."}
+              </span>
+              <button onClick={() => deleteMut.reset()} className="ml-auto">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                {[
-                  "Nama Kelas",
-                  "Tingkat",
-                  "Tahun Ajaran",
-                  "Wali Kelas",
-                  "Kapasitas",
-                  "Status",
-                  "Aksi",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {isLoading &&
-                [...Array(5)].map((_, i) => <SkeletonRow key={i} />)}
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  {[
+                    "#",
+                    "NAMA KELAS",
+                    "TINGKAT",
+                    "WALI KELAS",
+                    "KAPASITAS",
+                    "TAHUN AJARAN",
+                    "STATUS",
+                    "",
+                  ].map((h, i) => (
+                    <th
+                      key={i}
+                      className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {isLoading &&
+                  [...Array(5)].map((_, i) => (
+                    <TableSkeletonRow key={i} cols={8} />
+                  ))}
 
-              {!isLoading &&
-                list.map((kelas) => (
-                  <tr
-                    key={kelas.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <School className="w-4 h-4 text-orange-600" />
-                        </div>
-                        <span className="font-medium text-gray-900">
-                          {kelas.nama_kelas}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-0.5 bg-orange-50 text-orange-700 rounded font-semibold text-xs">
-                        Kelas {kelas.tingkat}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {kelas.tahun_ajaran}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {kelas.wali_kelas?.nama ?? "—"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5 text-gray-600">
-                        <Users className="w-3.5 h-3.5" />
-                        <span>
-                          {kelas.siswas_count ?? kelas.siswas?.length ?? 0}
-                        </span>
-                        <span className="text-gray-400">
-                          / {kelas.kapasitas}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge status={kelas.status} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button className="text-xs px-3 py-1 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-medium transition-colors">
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(kelas.id)}
-                          disabled={deleteMutation.isPending}
-                          className="text-xs px-3 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 font-medium transition-colors disabled:opacity-50"
-                        >
-                          {deleteMutation.isPending ? "..." : "Hapus"}
-                        </button>
-                      </div>
+                {!isLoading &&
+                  !isError &&
+                  list.map((kelas, idx) => {
+                    const terisi =
+                      kelas.siswas?.length ?? kelas.siswas_count ?? 0;
+                    return (
+                      <tr
+                        key={kelas.id}
+                        className="hover:bg-slate-50/80 transition-colors"
+                      >
+                        <td className="px-5 py-4 text-xs text-slate-400 font-medium">
+                          {(page - 1) * 15 + idx + 1}
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                              <School className="w-4 h-4 text-indigo-500" />
+                            </div>
+                            <span className="font-semibold text-slate-800">
+                              {kelas.nama_kelas}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md text-xs font-bold">
+                            Kelas {kelas.tingkat}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-slate-600 text-sm">
+                          {kelas.wali_kelas?.nama ?? (
+                            <span className="text-slate-300 italic text-xs">
+                              Belum ditentukan
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          <KapasitasBar
+                            terisi={terisi}
+                            kapasitas={kelas.kapasitas}
+                          />
+                        </td>
+                        <td className="px-5 py-4 text-slate-500 text-xs">
+                          {kelas.tahun_ajaran}
+                        </td>
+                        <td className="px-5 py-4">
+                          <StatusBadge status={kelas.status} dot />
+                        </td>
+                        <td className="px-5 py-4">
+                          <RowActions
+                            item={kelas}
+                            onDelete={handleDelete}
+                            deleting={
+                              deleteMut.isPending &&
+                              deleteMut.variables === kelas.id
+                            }
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                {!isLoading && !isError && list.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="py-0">
+                      <EmptyState
+                        type="empty"
+                        title="Tidak Ada Kelas"
+                        message={
+                          debounced
+                            ? `Tidak ada kelas "${debounced}"`
+                            : filterTingkat
+                              ? `Tidak ada kelas tingkat ${filterTingkat}`
+                              : "Belum ada data kelas."
+                        }
+                      />
                     </td>
                   </tr>
-                ))}
-
-              {!isLoading && !isError && list.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-12 text-center text-gray-400 text-sm"
-                  >
-                    {debouncedSearch
-                      ? `Tidak ada kelas dengan kata kunci "${debouncedSearch}"`
-                      : filterTingkat
-                        ? `Tidak ada kelas tingkat ${filterTingkat}`
-                        : "Belum ada data kelas."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {meta && meta.last_page > 1 && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
-            <span>
-              Menampilkan {list.length} dari {meta.total} kelas
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1 || isFetching}
-                className="px-3 py-1 border rounded-md hover:bg-gray-50 disabled:opacity-40"
-              >
-                ← Prev
-              </button>
-              <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-md font-medium">
-                {page} / {meta.last_page}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(meta.last_page, p + 1))}
-                disabled={page === meta.last_page || isFetching}
-                className="px-3 py-1 border rounded-md hover:bg-gray-50 disabled:opacity-40"
-              >
-                Next →
-              </button>
-            </div>
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+
+          {/* Pagination */}
+          {meta && meta.last_page > 1 && (
+            <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <span>
+                Menampilkan{" "}
+                <span className="font-semibold text-slate-700">
+                  {list.length}
+                </span>{" "}
+                dari{" "}
+                <span className="font-semibold text-slate-700">
+                  {meta.total}
+                </span>{" "}
+                kelas
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1 || isFetching}
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 font-medium"
+                >
+                  ← Prev
+                </button>
+                <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg font-semibold">
+                  {page}/{meta.last_page}
+                </span>
+                <button
+                  onClick={() =>
+                    setPage((p) => Math.min(meta.last_page, p + 1))
+                  }
+                  disabled={page === meta.last_page || isFetching}
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 font-medium"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

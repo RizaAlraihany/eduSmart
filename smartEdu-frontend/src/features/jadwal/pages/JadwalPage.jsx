@@ -1,225 +1,123 @@
-import { useState, useEffect, useCallback } from "react";
-import { Calendar, RefreshCw, X, Clock } from "lucide-react";
-import { jadwalService } from "@/services/dataService";
+// src/features/jadwal/pages/JadwalPage.jsx
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  User,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
+import api from "@/lib/api";
+import { useAuth } from "@/shared/hooks/useAuth";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import ClassHierarchyFilter from "@/shared/components/ui/ClassHierarchyFilter";
+import EmptyState from "@/shared/components/ui/EmptyState";
 
+// ─── Constants ──────────────────────────────────────────────────
 const HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-const HARI_COLOR = {
-  Senin: "bg-blue-50 text-blue-700 border-blue-200",
-  Selasa: "bg-green-50 text-green-700 border-green-200",
-  Rabu: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  Kamis: "bg-orange-50 text-orange-700 border-orange-200",
-  Jumat: "bg-purple-50 text-purple-700 border-purple-200",
-  Sabtu: "bg-pink-50 text-pink-700 border-pink-200",
+
+const HARI_THEME = {
+  Senin: {
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    dot: "bg-blue-500",
+    text: "text-blue-700",
+    header: "bg-blue-500",
+  },
+  Selasa: {
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    dot: "bg-emerald-500",
+    text: "text-emerald-700",
+    header: "bg-emerald-500",
+  },
+  Rabu: {
+    bg: "bg-violet-50",
+    border: "border-violet-200",
+    dot: "bg-violet-500",
+    text: "text-violet-700",
+    header: "bg-violet-500",
+  },
+  Kamis: {
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+    dot: "bg-amber-500",
+    text: "text-amber-700",
+    header: "bg-amber-500",
+  },
+  Jumat: {
+    bg: "bg-rose-50",
+    border: "border-rose-200",
+    dot: "bg-rose-500",
+    text: "text-rose-700",
+    header: "bg-rose-500",
+  },
+  Sabtu: {
+    bg: "bg-slate-50",
+    border: "border-slate-200",
+    dot: "bg-slate-400",
+    text: "text-slate-600",
+    header: "bg-slate-400",
+  },
 };
 
-const Badge = ({ status }) => (
-  <span
-    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${status === "aktif" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-  >
-    {status}
-  </span>
-);
+// Hari ini untuk highlight
+const HARI_MAP_EN = {
+  Monday: "Senin",
+  Tuesday: "Selasa",
+  Wednesday: "Rabu",
+  Thursday: "Kamis",
+  Friday: "Jumat",
+  Saturday: "Sabtu",
+  Sunday: "Minggu",
+};
+const hariIni =
+  HARI_MAP_EN[new Date().toLocaleDateString("en-US", { weekday: "long" })] ??
+  "";
 
-const SkeletonRow = () => (
-  <tr className="animate-pulse">
-    {[...Array(8)].map((_, i) => (
-      <td key={i} className="px-6 py-4">
-        <div className="h-4 bg-gray-200 rounded w-3/4" />
-      </td>
-    ))}
-  </tr>
-);
+// ─── Query fn ────────────────────────────────────────────────────
+const fetchJadwal = (params) =>
+  api.get("/jadwal", { params }).then((r) => r.data);
 
-const Jadwal = () => {
-  const [list, setList] = useState([]);
-  const [meta, setMeta] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [filterHari, setFilterHari] = useState("");
-  const [page, setPage] = useState(1);
-
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await jadwalService.getAll({
-        per_page: 20,
-        page,
-        hari: filterHari || undefined,
-      });
-      setList(res.data ?? []);
-      setMeta(res.meta ?? null);
-    } catch {
-      setError("Gagal memuat data jadwal.");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, filterHari]);
-
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
-  useEffect(() => {
-    setPage(1);
-  }, [filterHari]);
-
+// ─── JadwalCard ──────────────────────────────────────────────────
+const JadwalCard = ({ jadwal, hari }) => {
+  const theme = HARI_THEME[hari] ?? HARI_THEME.Senin;
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-white" />
-            </div>
-            Jadwal Pelajaran
-          </h1>
-          <p className="text-gray-500 text-sm mt-1 ml-12">
-            Jadwal mengajar per hari dan kelas
-          </p>
-        </div>
+    <div
+      className={`group rounded-xl border ${theme.border} ${theme.bg} p-3 hover:shadow-md transition-all cursor-default`}
+    >
+      {/* Mapel */}
+      <div className="flex items-start gap-2 mb-2">
+        <div
+          className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${theme.dot}`}
+        />
+        <p className={`text-xs font-bold leading-tight ${theme.text}`}>
+          {jadwal.mata_pelajaran?.nama_mapel ?? "—"}
+        </p>
       </div>
-
-      {/* Filter hari — pill tabs */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setFilterHari("")}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${filterHari === "" ? "bg-primary-600 text-white border-primary-600" : "text-gray-600 border-gray-200 hover:bg-gray-50"}`}
-        >
-          Semua Hari
-        </button>
-        {HARI.map((h) => (
-          <button
-            key={h}
-            onClick={() => setFilterHari(h)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${filterHari === h ? "bg-primary-600 text-white border-primary-600" : "text-gray-600 border-gray-200 hover:bg-gray-50"}`}
-          >
-            {h}
-          </button>
-        ))}
-        <button
-          onClick={fetch}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-full hover:bg-gray-50"
-        >
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh
-        </button>
-      </div>
-
-      {error && (
-        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          <X className="w-4 h-4 flex-shrink-0" />
-          {error}
-          <button onClick={fetch} className="ml-auto text-xs underline">
-            Coba lagi
-          </button>
+      {/* Detail */}
+      <div className="space-y-1 ml-4">
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+          <Clock className="w-3 h-3 flex-shrink-0" />
+          <span className="font-medium font-mono">
+            {jadwal.jam_mulai?.slice(0, 5)} – {jadwal.jam_selesai?.slice(0, 5)}
+          </span>
         </div>
-      )}
-
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                {[
-                  "#",
-                  "Hari",
-                  "Jam",
-                  "Mata Pelajaran",
-                  "Kelas",
-                  "Guru",
-                  "Ruangan",
-                  "Status",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                [...Array(10)].map((_, i) => <SkeletonRow key={i} />)
-              ) : list.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-6 py-16 text-center text-gray-400"
-                  >
-                    <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">Tidak ada data jadwal</p>
-                  </td>
-                </tr>
-              ) : (
-                list.map((j, i) => (
-                  <tr key={j.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-gray-400 text-xs">
-                      {(meta?.current_page - 1) * 20 + i + 1}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${HARI_COLOR[j.hari] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}
-                      >
-                        {j.hari}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5 text-gray-700">
-                        <Clock className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="font-mono text-xs">
-                          {j.jam_mulai} – {j.jam_selesai}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {j.mata_pelajaran?.nama_mapel ?? "-"}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {j.kelas?.nama_kelas ?? "-"}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {j.guru?.nama ?? "-"}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">
-                      {j.ruangan ?? (
-                        <span className="text-gray-300 italic text-xs">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge status={j.status} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {meta && meta.last_page > 1 && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
-            <span>
-              Menampilkan {list.length} dari {meta.total} data
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                ‹
-              </button>
-              <span className="px-3 py-1.5 text-xs">
-                {page} / {meta.last_page}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(meta.last_page, p + 1))}
-                disabled={page === meta.last_page}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                ›
-              </button>
-            </div>
+        {jadwal.guru?.nama && (
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+            <User className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate max-w-[110px]">{jadwal.guru.nama}</span>
+          </div>
+        )}
+        {jadwal.ruangan && (
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+            <MapPin className="w-3 h-3 flex-shrink-0" />
+            <span>{jadwal.ruangan}</span>
           </div>
         )}
       </div>
@@ -227,4 +125,208 @@ const Jadwal = () => {
   );
 };
 
-export default Jadwal;
+// ─── SkeletonCard ─────────────────────────────────────────────────
+const SkeletonCard = () => (
+  <div className="animate-pulse rounded-xl border border-slate-100 bg-slate-50 p-3 space-y-2">
+    <div className="h-3 bg-slate-200 rounded-full w-3/4" />
+    <div className="h-2.5 bg-slate-100 rounded-full w-1/2" />
+    <div className="h-2.5 bg-slate-100 rounded-full w-2/3" />
+  </div>
+);
+
+// ─── CalendarGrid ─────────────────────────────────────────────────
+const CalendarGrid = ({ jadwalByHari, loading }) => {
+  const maxRows = HARI.reduce(
+    (max, h) => Math.max(max, jadwalByHari[h]?.length ?? 0),
+    0,
+  );
+
+  return (
+    <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+      {HARI.map((hari) => {
+        const theme = HARI_THEME[hari];
+        const isToday = hari === hariIni;
+        const items = jadwalByHari[hari] ?? [];
+
+        return (
+          <div
+            key={hari}
+            className={`flex flex-col rounded-xl border overflow-hidden ${isToday ? "ring-2 ring-indigo-500 ring-offset-1" : "border-slate-200"}`}
+          >
+            {/* Day Header */}
+            <div
+              className={`px-3 py-2.5 flex items-center gap-2 ${isToday ? "bg-indigo-600" : "bg-slate-50 border-b border-slate-100"}`}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${isToday ? "bg-white" : theme.dot}`}
+              />
+              <span
+                className={`text-xs font-bold ${isToday ? "text-white" : theme.text}`}
+              >
+                {hari}
+              </span>
+              {isToday && (
+                <span className="ml-auto text-[10px] text-indigo-200 font-medium">
+                  Hari ini
+                </span>
+              )}
+              {!isToday && items.length > 0 && (
+                <span
+                  className={`ml-auto text-[10px] font-semibold ${theme.text} bg-white/70 px-1.5 py-0.5 rounded-full`}
+                >
+                  {items.length}
+                </span>
+              )}
+            </div>
+
+            {/* Cards */}
+            <div className="flex-1 p-2 space-y-2 bg-white min-h-[120px]">
+              {loading ? (
+                [...Array(2)].map((_, i) => <SkeletonCard key={i} />)
+              ) : items.length === 0 ? (
+                <div className="h-full flex items-center justify-center py-6">
+                  <p className="text-[11px] text-slate-300 italic text-center">
+                    Tidak ada jadwal
+                  </p>
+                </div>
+              ) : (
+                items
+                  .sort((a, b) =>
+                    (a.jam_mulai ?? "").localeCompare(b.jam_mulai ?? ""),
+                  )
+                  .map((j) => <JadwalCard key={j.id} jadwal={j} hari={hari} />)
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─── Main Component ──────────────────────────────────────────────
+const JadwalPage = () => {
+  const { isAdmin } = useAuth();
+
+  // Admin bisa filter per kelas; guru/siswa auto-filter di backend
+  const [filter, setFilter] = useState({
+    jurusan: null,
+    tingkat: null,
+    kelas_id: null,
+  });
+  const [semester, setSemester] = useState("1");
+  const [tahunAjaran] = useState("2024/2025");
+
+  const isAdmin_ = isAdmin;
+  // Non-admin: fetch langsung tanpa ClassHierarchyFilter
+  const isFilterReady = isAdmin_ ? !!filter.kelas_id : true;
+
+  const queryParams = {
+    per_page: 100,
+    kelas_id: filter.kelas_id || undefined,
+    semester,
+    tahun_ajaran: tahunAjaran,
+    status: "aktif",
+  };
+
+  const { data, isLoading, isError, error, isFetching, refetch } = useQuery({
+    queryKey: ["jadwal", "grid", queryParams],
+    queryFn: () => fetchJadwal(queryParams),
+    enabled: isFilterReady,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const list = data?.data ?? [];
+
+  // Group by hari
+  const jadwalByHari = HARI.reduce((acc, h) => {
+    acc[h] = list.filter((j) => j.hari === h);
+    return acc;
+  }, {});
+
+  const totalJadwal = list.length;
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+        {/* Header */}
+        <PageHeader
+          icon={Calendar}
+          title="Jadwal Pelajaran"
+          subtitle="Tampilan kalender mingguan Senin–Sabtu"
+        >
+          <div className="flex items-center gap-2">
+            {/* Semester switch */}
+            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5">
+              {["1", "2"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSemester(s)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${semester === s ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                  Semester {s}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`}
+              />
+            </button>
+          </div>
+        </PageHeader>
+
+        {/* Filter (admin only) */}
+        {isAdmin_ && (
+          <ClassHierarchyFilter value={filter} onChange={(v) => setFilter(v)} />
+        )}
+
+        {/* Content */}
+        {isAdmin_ && !filter.kelas_id ? (
+          <EmptyState
+            type="filter"
+            title="Pilih Kelas"
+            message="Pilih Jurusan, Tingkat, dan Kelas untuk melihat jadwal."
+          />
+        ) : isError ? (
+          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm">
+            <AlertCircle className="w-4 h-4" />
+            <span>
+              {error?.response?.data?.message ?? "Gagal memuat jadwal."}
+            </span>
+          </div>
+        ) : (
+          <>
+            {/* Summary */}
+            {!isLoading && (
+              <div className="flex items-center gap-4 px-1">
+                <p className="text-xs text-slate-500">
+                  <span className="font-semibold text-slate-700">
+                    {totalJadwal}
+                  </span>{" "}
+                  jadwal aktif minggu ini
+                </p>
+                <span className="text-slate-300">•</span>
+                <p className="text-xs text-slate-500">
+                  Tahun Ajaran{" "}
+                  <span className="font-semibold text-slate-700">
+                    {tahunAjaran}
+                  </span>
+                </p>
+              </div>
+            )}
+
+            {/* Calendar Grid */}
+            <CalendarGrid jadwalByHari={jadwalByHari} loading={isLoading} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default JadwalPage;
