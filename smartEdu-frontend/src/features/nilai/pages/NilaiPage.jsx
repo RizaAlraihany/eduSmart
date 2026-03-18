@@ -1,63 +1,55 @@
 import { useState, useEffect, useCallback } from "react";
-import { TrendingUp, RefreshCw, X } from "lucide-react";
+import { FileSignature, RefreshCw, X, Plus, BookOpen } from "lucide-react";
 import { nilaiService } from "@/services/dataService";
+import { useAuth } from "@/shared/hooks/useAuth";
+import Button from "@/shared/components/ui/Button";
+import NilaiFormModal from "../components/NilaiFormModal";
 
-const JENIS = ["tugas", "harian", "uts", "uas", "praktek"];
-const SEMESTER = [
-  { v: "1", l: "Semester 1" },
-  { v: "2", l: "Semester 2" },
-];
-
-// Warna nilai
-const nilaiColor = (n) => {
-  if (n >= 85)
-    return { bar: "bg-green-500", text: "text-green-700", bg: "bg-green-50" };
-  if (n >= 70)
-    return {
-      bar: "bg-yellow-400",
-      text: "text-yellow-700",
-      bg: "bg-yellow-50",
-    };
-  return { bar: "bg-red-400", text: "text-red-700", bg: "bg-red-50" };
+const JENIS_NILAI_MAP = {
+  tugas: { label: "Tugas", cls: "bg-blue-100 text-blue-700" },
+  pts: { label: "PTS", cls: "bg-purple-100 text-purple-700" },
+  uts: { label: "UTS", cls: "bg-indigo-100 text-indigo-700" },
+  uas: { label: "UAS", cls: "bg-pink-100 text-pink-700" },
+  harian: { label: "Harian", cls: "bg-cyan-100 text-cyan-700" },
+  praktek: { label: "Praktek", cls: "bg-orange-100 text-orange-700" },
 };
 
-const JenisBadge = ({ jenis }) => {
-  const map = {
-    tugas: "bg-blue-100 text-blue-700",
-    harian: "bg-cyan-100 text-cyan-700",
-    uts: "bg-orange-100 text-orange-700",
-    uas: "bg-red-100 text-red-700",
-    praktek: "bg-purple-100 text-purple-700",
+const JenisBadge = ({ type }) => {
+  const s = JENIS_NILAI_MAP[type?.toLowerCase()] ?? {
+    label: type,
+    cls: "bg-gray-100 text-gray-600",
   };
   return (
     <span
-      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${map[jenis] ?? "bg-gray-100 text-gray-600"}`}
+      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase ${s.cls}`}
     >
-      {jenis}
+      {s.label || type || "Unknown"}
     </span>
   );
 };
 
-const SkeletonRow = () => (
-  <tr className="animate-pulse">
-    {[...Array(7)].map((_, i) => (
-      <td key={i} className="px-6 py-4">
-        <div className="h-4 bg-gray-200 rounded w-3/4" />
-      </td>
-    ))}
-  </tr>
-);
+const getScoreColor = (score) => {
+  if (score >= 85) return "text-green-600 font-bold";
+  if (score >= 70) return "text-blue-600 font-bold";
+  if (score >= 50) return "text-yellow-600 font-bold";
+  return "text-red-600 font-bold";
+};
 
-const Nilai = () => {
+const NilaiPage = () => {
+  const { isAdmin, user } = useAuth();
+  const isGuru = user?.role === "guru";
+
   const [list, setList] = useState([]);
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filterJenis, setFilterJenis] = useState("");
-  const [filterSemester, setFilterSemester] = useState("");
   const [page, setPage] = useState(1);
+  const [filterJenis, setFilterJenis] = useState("");
 
-  const fetch = useCallback(async () => {
+  // State Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -65,215 +57,218 @@ const Nilai = () => {
         per_page: 15,
         page,
         jenis_nilai: filterJenis || undefined,
-        semester: filterSemester || undefined,
       });
-      setList(res.data ?? []);
-      setMeta(res.meta ?? null);
+      // Handle response API
+      const dataArr = res.data?.data || res.data || [];
+      setList(Array.isArray(dataArr) ? dataArr : []);
+      setMeta(res.meta ?? res.data?.meta ?? null);
     } catch {
       setError("Gagal memuat data nilai.");
     } finally {
       setLoading(false);
     }
-  }, [page, filterJenis, filterSemester]);
+  }, [page, filterJenis]);
 
   useEffect(() => {
-    fetch();
-  }, [fetch]);
+    loadData();
+  }, [loadData]);
+
   useEffect(() => {
     setPage(1);
-  }, [filterJenis, filterSemester]);
-
-  // Rata-rata nilai dari data yang tampil
-  const avg = list.length
-    ? Math.round(
-        list.reduce((s, n) => s + parseFloat(n.nilai ?? 0), 0) / list.length,
-      )
-    : null;
+  }, [filterJenis]);
 
   return (
     <div className="space-y-6">
+      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="w-9 h-9 bg-rose-600 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 bg-fuchsia-500 rounded-lg flex items-center justify-center">
+              <FileSignature className="w-5 h-5 text-white" />
             </div>
-            Nilai
+            Data Nilai Siswa
           </h1>
           <p className="text-gray-500 text-sm mt-1 ml-12">
-            Rekap nilai siswa per mata pelajaran
+            Manajemen penilaian dan hasil belajar
           </p>
         </div>
-        {avg !== null && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-sm">
-            <span className="text-xs text-gray-500">Rata-rata halaman ini</span>
-            <span className={`text-lg font-bold ${nilaiColor(avg).text}`}>
-              {avg}
-            </span>
-          </div>
-        )}
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={loadData}
+            disabled={loading}
+            className="px-3 py-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+
+          {(isAdmin || isGuru) && (
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-fuchsia-600 hover:bg-fuchsia-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Input Nilai
+            </Button>
+          )}
+        </div>
       </div>
 
+      {/* ── Error ── */}
       {error && (
         <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           <X className="w-4 h-4 flex-shrink-0" />
           {error}
-          <button onClick={fetch} className="ml-auto text-xs underline">
+          <button onClick={loadData} className="ml-auto text-xs underline">
             Coba lagi
           </button>
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* Toolbar */}
-        <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3">
-          <select
-            value={filterJenis}
-            onChange={(e) => setFilterJenis(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="">Semua Jenis Nilai</option>
-            {JENIS.map((j) => (
-              <option key={j} value={j} className="capitalize">
-                {j.toUpperCase()}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filterSemester}
-            onChange={(e) => setFilterSemester(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="">Semua Semester</option>
-            {SEMESTER.map((s) => (
-              <option key={s.v} value={s.v}>
-                {s.l}
-              </option>
-            ))}
-          </select>
+      {/* ── Filter Pills ── */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          { v: "", l: "Semua Kategori" },
+          { v: "tugas", l: "Tugas" },
+          { v: "harian", l: "Harian" },
+          { v: "pts", l: "PTS" },
+          { v: "uas", l: "UAS" },
+        ].map(({ v, l }) => (
           <button
-            onClick={fetch}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 ml-auto"
+            key={v}
+            onClick={() => setFilterJenis(v)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              filterJenis === v
+                ? "bg-fuchsia-600 text-white border-fuchsia-600"
+                : "bg-white text-gray-600 border-gray-200 hover:border-fuchsia-300"
+            }`}
           >
-            <RefreshCw className="w-4 h-4" /> Refresh
+            {l}
           </button>
-        </div>
+        ))}
+      </div>
 
+      {/* ── Table View ── */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                {[
-                  "#",
-                  "Siswa",
-                  "Kelas",
-                  "Mata Pelajaran",
-                  "Jenis",
-                  "Nilai",
-                  "Semester",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                  #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                  Nama Siswa
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                  Kelas
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                  Mata Pelajaran
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                  Kategori
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                  Skor Nilai
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-100">
               {loading ? (
-                [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    {[...Array(6)].map((_, j) => (
+                      <td key={j} className="px-6 py-4">
+                        <div className="h-4 bg-gray-200 rounded w-full" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
               ) : list.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={6}
                     className="px-6 py-16 text-center text-gray-400"
                   >
-                    <TrendingUp className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <FileSignature className="w-10 h-10 mx-auto mb-3 opacity-30 text-fuchsia-500" />
                     <p className="font-medium">Tidak ada data nilai</p>
                   </td>
                 </tr>
               ) : (
-                list.map((n, i) => {
-                  const c = nilaiColor(parseFloat(n.nilai));
-                  return (
-                    <tr
-                      key={n.id}
-                      className="hover:bg-gray-50 transition-colors"
+                list.map((item, i) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 text-gray-400 text-xs">
+                      {(meta?.current_page ? meta.current_page - 1 : 0) * 15 +
+                        i +
+                        1}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-gray-900">
+                      {item.siswa?.nama_lengkap || `Siswa ID: ${item.siswa_id}`}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {item.kelas?.nama_kelas || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 flex items-center gap-2">
+                      <BookOpen className="w-3.5 h-3.5 text-gray-400" />
+                      {item.mata_pelajaran?.nama || "-"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <JenisBadge type={item.jenis_nilai} />
+                    </td>
+                    <td
+                      className={`px-6 py-4 text-right text-base ${getScoreColor(item.nilai)}`}
                     >
-                      <td className="px-6 py-4 text-gray-400 text-xs">
-                        {(meta?.current_page - 1) * 15 + i + 1}
-                      </td>
-                      <td className="px-6 py-4 font-medium text-gray-900">
-                        {n.siswa?.nama ?? "-"}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {n.kelas?.nama_kelas ?? "-"}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {n.mata_pelajaran?.nama_mapel ?? "-"}
-                      </td>
-                      <td className="px-6 py-4">
-                        <JenisBadge jenis={n.jenis_nilai} />
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {/* Nilai angka */}
-                          <span
-                            className={`w-10 text-center px-1.5 py-0.5 rounded-lg text-xs font-bold ${c.bg} ${c.text}`}
-                          >
-                            {n.nilai}
-                          </span>
-                          {/* Progress bar */}
-                          <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${c.bar}`}
-                              style={{ width: `${n.nilai}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        Semester {n.semester}
-                      </td>
-                    </tr>
-                  );
-                })
+                      {item.nilai}
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
 
+        {/* Pagination */}
         {meta && meta.last_page > 1 && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
-            <span>
-              Menampilkan {list.length} dari {meta.total} data
-            </span>
-            <div className="flex items-center gap-1">
-              <button
+          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+            <p className="text-xs text-gray-400">
+              Halaman {meta.current_page} dari {meta.last_page} · {meta.total}{" "}
+              total
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                ‹
-              </button>
-              <span className="px-3 py-1.5 text-xs">
-                {page} / {meta.last_page}
-              </span>
-              <button
+                ← Prev
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setPage((p) => Math.min(meta.last_page, p + 1))}
                 disabled={page === meta.last_page}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                ›
-              </button>
+                Next →
+              </Button>
             </div>
           </div>
         )}
       </div>
+
+      {/* ── Modal Form ── */}
+      <NilaiFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={loadData}
+      />
     </div>
   );
 };
 
-export default Nilai;
+export default NilaiPage;

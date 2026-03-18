@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { tugasService } from "@/services/dataService";
 import { useAuth } from "@/shared/hooks/useAuth";
+import Button from "@/shared/components/ui/Button";
+import TugasFormModal from "../components/TugasFormModal";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -38,6 +40,12 @@ const STATUS_MAP = {
     cls: "bg-red-100 text-red-700",
     bar: "border-red-500",
     bg: "bg-red-50",
+  },
+  aktif: {
+    label: "Aktif",
+    cls: "bg-indigo-100 text-indigo-700",
+    bar: "border-indigo-500",
+    bg: "bg-indigo-50",
   },
 };
 
@@ -85,7 +93,6 @@ const SkeletonCard = () => (
 
 const TugasPage = () => {
   const { isAdmin, user } = useAuth();
-  // Catatan: sesuaikan properti 'user.role' dengan implementasi useAuth Anda
   const isGuru = user?.role === "guru";
 
   const [list, setList] = useState([]);
@@ -94,20 +101,24 @@ const TugasPage = () => {
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [page, setPage] = useState(1);
-  const [viewMode, setViewMode] = useState("card");
+  const [viewMode, setViewMode] = useState("table"); // Default table view untuk Guru
+
+  // State untuk mengontrol Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      // Sesuaikan metode fetching API ini, contoh memanggil getAll
       const res = await tugasService.getAll({
         per_page: 12,
         page,
         status: filterStatus || undefined,
       });
-      setList(res.data ?? []);
-      setMeta(res.meta ?? null);
+      // Handle berbagai format response API
+      const dataArr = res.data?.data || res.data || [];
+      setList(Array.isArray(dataArr) ? dataArr : []);
+      setMeta(res.meta ?? res.data?.meta ?? null);
     } catch {
       setError("Gagal memuat data tugas.");
     } finally {
@@ -156,19 +167,21 @@ const TugasPage = () => {
             </button>
           </div>
 
-          <button
+          <Button
+            variant="outline"
             onClick={loadData}
-            className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            disabled={loading}
+            className="px-3 py-2"
           >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
 
           {/* Admin & Guru Only: tombol buat Tugas */}
           {(isAdmin || isGuru) && (
-            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-colors">
-              <Plus className="w-4 h-4" />
+            <Button onClick={() => setIsModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
               Buat Tugas
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -188,10 +201,10 @@ const TugasPage = () => {
       <div className="flex flex-wrap gap-2">
         {[
           { v: "", l: "Semua Status" },
+          { v: "aktif", l: "Aktif" },
           { v: "belum dikumpulkan", l: "Belum Dikumpulkan" },
           { v: "dikumpulkan", l: "Dikumpulkan" },
           { v: "selesai", l: "Selesai" },
-          { v: "terlambat", l: "Terlambat" },
         ].map(({ v, l }) => (
           <button
             key={v}
@@ -217,7 +230,7 @@ const TugasPage = () => {
               ))}
             </div>
           ) : list.length === 0 ? (
-            <div className="text-center py-20 text-gray-400">
+            <div className="text-center py-20 text-gray-400 bg-white rounded-xl border border-gray-200">
               <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="font-medium">Tidak ada data tugas</p>
             </div>
@@ -242,7 +255,7 @@ const TugasPage = () => {
 
                     <div className="flex items-center gap-2 text-xs text-gray-600 mb-4 font-medium flex-grow">
                       <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
-                      {t.mapel || "Umum"}
+                      {t.mata_pelajaran?.nama || t.mapel || "Umum"}
                     </div>
 
                     <div className="flex items-center justify-between text-xs text-gray-400 border-t border-gray-100 pt-3">
@@ -285,6 +298,9 @@ const TugasPage = () => {
                     Mata Pelajaran
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Kelas
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Deadline
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -296,7 +312,7 @@ const TugasPage = () => {
                 {loading ? (
                   [...Array(5)].map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      {[...Array(5)].map((_, j) => (
+                      {[...Array(6)].map((_, j) => (
                         <td key={j} className="px-6 py-4">
                           <div className="h-4 bg-gray-200 rounded w-3/4" />
                         </td>
@@ -306,7 +322,7 @@ const TugasPage = () => {
                 ) : list.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={6}
                       className="px-6 py-16 text-center text-gray-400"
                     >
                       <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -328,7 +344,10 @@ const TugasPage = () => {
                         {t.judul}
                       </td>
                       <td className="px-6 py-4 text-gray-600">
-                        {t.mapel || "Umum"}
+                        {t.mata_pelajaran?.nama || t.mapel || "Umum"}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {t.kelas?.nama_kelas || "-"}
                       </td>
                       <td className="px-6 py-4 text-gray-600 text-xs">
                         {fmtDate(t.tanggal_deadline)}
@@ -351,27 +370,36 @@ const TugasPage = () => {
                 total
               </p>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors"
                 >
                   ← Prev
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() =>
                     setPage((p) => Math.min(meta.last_page, p + 1))
                   }
                   disabled={page === meta.last_page}
-                  className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors"
                 >
                   Next →
-                </button>
+                </Button>
               </div>
             </div>
           )}
         </div>
       )}
+
+      {/* ── Modal Form Integrasi ── */}
+      <TugasFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={loadData}
+      />
     </div>
   );
 };
